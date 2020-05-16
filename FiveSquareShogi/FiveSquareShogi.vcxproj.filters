@@ -1,0 +1,102 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ソース ファイル">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="ヘッダー ファイル">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="リソース ファイル">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="kppt">
+      <UniqueIdentifier>{eae5151f-fd68-4000-ae23-43e99666d6a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\kiso">
+      <UniqueIdentifier>{be5ccee5-58bc-44e0-a2fd-e9a40b9c5484}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ヘッダー ファイル\search">
+      <UniqueIdentifier>{9e6b05d3-b738-4c12-b1ae-61a0dff19a0f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\kiso">
+      <UniqueIdentifier>{9fc7f0a2-347d-40c5-aa63-09c8e5a0787f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\search">
+      <UniqueIdentifier>{43f4d1cb-d41e-429c-acd2-03592d84f4cf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="kppt_evaluate.h">
+      <Filter>kppt</Filter>
+    </ClInclude>
+    <ClInclude Include="commander.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="bb_kiki.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="agent.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="bitboard.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="koma.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="kyokumen.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="move.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="usi.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="leaf_guard.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="move_gen.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="node.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="player.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="tree.h">
+      <Filter>ヘッダー ファイル\search</Filter>
+    </ClInclude>
+    <ClInclude Include="evaluator.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="feature.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="time_property.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
+    <ClInclude Include="kppt_param.h">
+      <Filter>kppt</Filter>
+    </ClInclude>
+    <ClInclude Include="kppt_feature.h">
+      <Filter>kppt</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
