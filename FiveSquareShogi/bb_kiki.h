@@ -27,19 +27,19 @@ private:
 	static Barray25 RyuStep;
 	static Barray25 Ou;
 
-	static std::array<Bitboard, 25> KakuPositiveInclinationMask;//角の斜めは、傾きの正負で名前を付けている
-	static std::array<Bitboard, 25> KakuNegativeInclinationMask;
-	static std::array<Bitboard, 5> HiVerticalMask;
-	static std::array<Bitboard, 5> HiHorizontalMask;
+	static std::array<std::uint32_t, 25> KakuPositiveInclinationMask;//角の斜めは、傾きの正負で名前を付けている
+	static std::array<std::uint32_t, 25> KakuNegativeInclinationMask;
+	static std::array<std::uint32_t, 5> HiVerticalMask;
+	static std::array<std::uint32_t, 5> HiHorizontalMask;
 
-	static std::array<unsigned, 25> KPIndex;
-	static std::array<unsigned, 25> KNIndex;
-	static std::array<unsigned, 5> HIndex;//飛車はのindexは一つで十分
+	static std::array<size_t, 25> KPIndex;
+	static std::array<size_t, 25> KNIndex;
+	static std::array<size_t, 5> HIndex;//飛車はのindexは一つで十分
 
 	static std::array<Bitboard, 60> KakuDashPositive;//初期位置で角が睨み合う方の向き
 	static std::array<Bitboard, 60> KakuDashNegative;
 	static std::array<std::uint32_t, 28> HiDashVertical;//縦
-	static std::array<Bitboard, 28> HiDashHorizontal;//横
+	static std::array<std::uint32_t, 28> HiDashHorizontal;//横
 
 private:
 	static void genData();//利きテーブルを生成する(事前に実行して準備しておく)

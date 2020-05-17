@@ -147,8 +147,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bb_kiki.cpp" />
+    <ClCompile Include="bitboard.cpp" />
+    <ClCompile Include="koma.cpp" />
+    <ClCompile Include="kyokumen.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="move.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="usi.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="agent.h" />
@@ -158,6 +164,7 @@
     <ClInclude Include="evaluator.h" />
     <ClInclude Include="feature.h" />
     <ClInclude Include="koma.h" />
+    <ClInclude Include="koma_motion.h" />
     <ClInclude Include="kppt_evaluate.h" />
     <ClInclude Include="kppt_feature.h" />
     <ClInclude Include="kppt_param.h" />
@@ -171,6 +178,7 @@
     <ClInclude Include="time_property.h" />
     <ClInclude Include="tree.h" />
     <ClInclude Include="usi.h" />
+    <ClInclude Include="vec2.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

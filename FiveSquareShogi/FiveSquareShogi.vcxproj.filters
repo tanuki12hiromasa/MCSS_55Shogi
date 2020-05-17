@@ -36,6 +36,24 @@
     <ClCompile Include="main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="bb_kiki.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
+    <ClCompile Include="bitboard.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
+    <ClCompile Include="koma.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
+    <ClCompile Include="move.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
+    <ClCompile Include="kyokumen.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
+    <ClCompile Include="usi.cpp">
+      <Filter>ソース ファイル\kiso</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
@@ -97,6 +115,12 @@
     </ClInclude>
     <ClInclude Include="kppt_feature.h">
       <Filter>kppt</Filter>
+    </ClInclude>
+    <ClInclude Include="vec2.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="koma_motion.h">
+      <Filter>ヘッダー ファイル\kiso</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

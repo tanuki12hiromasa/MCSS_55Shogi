@@ -6,7 +6,7 @@ namespace koma {
 	enum class Koma : std::uint8_t {
 		s_Fu, s_Gin, s_Kaku, s_Hi, s_Kin, s_Ou,
 		s_nFu, s_nGin, s_nKaku, s_nHi,
-		g_Fu, g_Gin, g_Kaku, g_Hi, _g_Kin, g_Ou,
+		g_Fu, g_Gin, g_Kaku, g_Hi, g_Kin, g_Ou,
 		g_nFu, g_nGin, g_nKaku, g_nHi,
 		KomaNum,
 		None,
@@ -41,10 +41,43 @@ namespace koma {
 
 	extern Koma promote(Koma koma);
 	extern Koma dispromote(Koma koma);
+	//遠距離移動できる駒かどうか
+	inline bool isDashable(Koma koma) {
+		switch (koma)
+		{
+			case Koma::s_Kaku:
+			case Koma::s_Hi:
+			case Koma::s_nHi:
+			case Koma::s_nKaku:
+			case Koma::g_Kaku:
+			case Koma::g_Hi:
+			case Koma::g_nKaku:
+			case Koma::g_nHi:
+				return true;
+			default:
+				return false;
+		}
+	}
+	//1マス移動できる駒かどうか(桂もこの部類に入る)
+	inline bool isSteppable(Koma koma) {
+		switch (koma)
+		{
+			case Koma::s_Kaku:
+			case Koma::s_Hi:
+			case Koma::g_Kaku:
+			case Koma::g_Hi:
+				return false;
+			default:
+				return true;
+		}
+	}
 
-	extern Koma sginv(Koma koma);
-
-	extern Position KomaToMpos(Koma koma);
+	inline Koma sgInv(Koma koma) {
+		if (static_cast<std::uint8_t>(koma) < static_cast<std::uint8_t>(Koma::g_Min))
+			return static_cast<Koma>(static_cast<std::uint8_t>(koma) + static_cast<std::uint8_t>(Koma::Sengo));
+		else
+			return static_cast<Koma>(static_cast<std::uint8_t>(koma) - static_cast<std::uint8_t>(Koma::Sengo));
+	}
 
 	//x,yはそれぞれ[0,8]
 	inline unsigned XYtoPos(const unsigned x, const unsigned y) {
