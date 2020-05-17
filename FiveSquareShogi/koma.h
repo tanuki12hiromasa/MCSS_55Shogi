@@ -19,6 +19,9 @@ namespace koma {
 	enum class Mochigoma : std::uint8_t {
 		Fu, Gin, Kaku, Hi, Kin, MochigomaNum, None
 	};
+	extern Mochigoma KomaToMochi(const Koma koma);
+	extern Koma MochiToKoma(const Mochigoma mochi, const bool sengo);
+
 	enum Position : std::uint8_t {
 		SQ11, SQ12, SQ13, SQ14, SQ15,
 		SQ21, SQ22, SQ23, SQ24, SQ25,

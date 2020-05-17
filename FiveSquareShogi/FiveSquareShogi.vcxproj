@@ -147,13 +147,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="kppt_evaluate.cpp" />
     <ClCompile Include="bb_kiki.cpp" />
     <ClCompile Include="bitboard.cpp" />
     <ClCompile Include="koma.cpp" />
+    <ClCompile Include="kppt_feature.cpp" />
     <ClCompile Include="kyokumen.cpp" />
+    <ClCompile Include="leaf_guard.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="move.cpp" />
+    <ClCompile Include="move_gen.cpp" />
+    <ClCompile Include="node.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="tree.cpp" />
     <ClCompile Include="usi.cpp" />
   </ItemGroup>
   <ItemGroup>

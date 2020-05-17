@@ -54,6 +54,24 @@
     <ClCompile Include="usi.cpp">
       <Filter>ソース ファイル\kiso</Filter>
     </ClCompile>
+    <ClCompile Include="node.cpp">
+      <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
+    <ClCompile Include="tree.cpp">
+      <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
+    <ClCompile Include="kppt_evaluate.cpp">
+      <Filter>kppt</Filter>
+    </ClCompile>
+    <ClCompile Include="kppt_feature.cpp">
+      <Filter>kppt</Filter>
+    </ClCompile>
+    <ClCompile Include="move_gen.cpp">
+      <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
+    <ClCompile Include="leaf_guard.cpp">
+      <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
