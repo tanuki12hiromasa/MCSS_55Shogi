@@ -28,6 +28,9 @@
     <Filter Include="ソース ファイル\search">
       <UniqueIdentifier>{43f4d1cb-d41e-429c-acd2-03592d84f4cf}</UniqueIdentifier>
     </Filter>
+    <Filter Include="debug">
+      <UniqueIdentifier>{feb4d4ba-81db-4b03-b8f9-e04ee2aaa7ab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -80,6 +83,9 @@
     </ClCompile>
     <ClCompile Include="commander.cpp">
       <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="stest.cpp">
+      <Filter>debug</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -148,6 +154,9 @@
     </ClInclude>
     <ClInclude Include="koma_motion.h">
       <Filter>ヘッダー ファイル\kiso</Filter>
+    </ClInclude>
+    <ClInclude Include="stest.h">
+      <Filter>debug</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

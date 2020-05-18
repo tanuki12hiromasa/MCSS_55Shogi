@@ -161,6 +161,7 @@
     <ClCompile Include="move_gen.cpp" />
     <ClCompile Include="node.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="stest.cpp" />
     <ClCompile Include="time_property.cpp" />
     <ClCompile Include="tree.cpp" />
     <ClCompile Include="usi.cpp" />
@@ -184,6 +185,7 @@
     <ClInclude Include="node.h" />
     <ClInclude Include="player.h" />
     <ClInclude Include="stdafx.h" />
+    <ClInclude Include="stest.h" />
     <ClInclude Include="time_property.h" />
     <ClInclude Include="tree.h" />
     <ClInclude Include="usi.h" />

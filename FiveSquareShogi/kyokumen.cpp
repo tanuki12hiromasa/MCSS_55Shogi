@@ -332,7 +332,7 @@ std::vector<Bitboard> Kyokumen::getSenteOuCheck(const Move m)const {
 		}
 	}
 	if (isSteppable(movedKoma)) {
-		Bitboard tpBB = Bitboard(to);
+		Bitboard tpBB = Bitboard::genOneposBB(to);
 		tpBB &= BBkiki::getStepKiki(sgInv(movedKoma), ouPos);
 		if (tpBB.any()) {
 			kusemono.push_back(tpBB);
@@ -369,7 +369,7 @@ std::vector<Bitboard> Kyokumen::getGoteOuCheck(const Move m)const {
 		}
 	}
 	if (isSteppable(movedKoma)) {
-		Bitboard tpBB = Bitboard(to);
+		Bitboard tpBB = Bitboard::genOneposBB(to);
 		tpBB &= BBkiki::getStepKiki(sgInv(movedKoma), ouPos);
 		if (tpBB.any()) {
 			kusemono.push_back(tpBB);
