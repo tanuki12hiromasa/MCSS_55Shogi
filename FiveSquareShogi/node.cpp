@@ -9,7 +9,6 @@ double SearchNode::mateMass = 1;
 double SearchNode::mateScore = 34000.0;//詰ませた側(勝った側)のscore
 double SearchNode::mateScoreBound = 30000.0;
 double SearchNode::mateOneScore = 20.0;
-double SearchNode::repetitionScore = -100;//先手側のscore（千日手のscoreは手番に依存する）
 double SearchNode::Ts_c = 1.0;
 int SearchNode::Ts_FunctionCode = 0;
 double SearchNode::T_eval = 40;
@@ -105,7 +104,7 @@ void SearchNode::setDeclare() {
 
 void SearchNode::setRepetition(const bool teban) {
 	//deleteTree();
-	eval = teban ? repetitionScore : (-repetitionScore);
+	eval = teban ? -mateScore : mateScore;
 	origin_eval = eval.load();
 	mass = mateMass;
 	status = State::T;

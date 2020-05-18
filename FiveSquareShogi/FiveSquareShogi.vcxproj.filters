@@ -72,6 +72,15 @@
     <ClCompile Include="leaf_guard.cpp">
       <Filter>ソース ファイル\search</Filter>
     </ClCompile>
+    <ClCompile Include="agent.cpp">
+      <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
+    <ClCompile Include="time_property.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
+    <ClCompile Include="commander.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">

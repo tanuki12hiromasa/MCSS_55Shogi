@@ -46,7 +46,7 @@ public:
 	bool operator==(const Kyokumen& rhs)const;
 	bool operator!=(const Kyokumen& rhs)const { return !operator==(rhs); }
 private:
-	void setKoma(size_t pos, koma::Koma k) { assert(0 <= pos && pos < 81); bammen[pos] = static_cast<std::uint8_t>(k); }
+	void setKoma(size_t pos, koma::Koma k) { assert(0 <= pos && pos < 25); bammen[pos] = static_cast<std::uint8_t>(k); }
 	void reflectBitboard();
 
 

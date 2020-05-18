@@ -36,8 +36,8 @@ private:
 	static std::array<size_t, 25> KNIndex;
 	static std::array<size_t, 5> HIndex;//飛車はのindexは一つで十分
 
-	static std::array<Bitboard, 60> KakuDashPositive;//初期位置で角が睨み合う方の向き
-	static std::array<Bitboard, 60> KakuDashNegative;
+	static std::array<Bitboard, 68> KakuDashPositive;//初期位置で角が睨み合う方の向き
+	static std::array<Bitboard, 68> KakuDashNegative;
 	static std::array<std::uint32_t, 28> HiDashVertical;//縦
 	static std::array<std::uint32_t, 28> HiDashHorizontal;//横
 
@@ -66,6 +66,7 @@ inline const Bitboard BBkiki::getStepKiki(const koma::Koma fromkoma, const unsig
 			return Bitboard(gFu[komapos]);
 		case Koma::g_Gin:
 			return Bitboard(gGin[komapos]);
+		case Koma::g_Kin:
 		case Koma::g_nFu:
 		case Koma::g_nGin:
 			return Bitboard(gKin[komapos]);
@@ -120,6 +121,7 @@ inline const Bitboard BBkiki::getKiki(const Bitboard& allBB, const koma::Koma ko
 			return Bitboard(gFu[komapos]);
 		case Koma::g_Gin:
 			return Bitboard(gGin[komapos]);
+		case Koma::g_Kin:
 		case Koma::g_nFu:
 		case Koma::g_nGin:
 			return Bitboard(gKin[komapos]);

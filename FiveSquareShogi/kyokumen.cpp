@@ -83,7 +83,7 @@ Kyokumen::Kyokumen(const std::vector<std::string>& tokens) {
 					num = *c - '0' + 10u;
 					c++;
 				}
-				else if ('1' < *c && *c <= '9') {
+				else if ('1' < *c && *c <= '5') {
 					num = *c - '0';
 					c++;
 				}
@@ -100,7 +100,7 @@ std::string Kyokumen::toSfen()const {
 	for (int y = 0; y < 5; y++) {
 		int nonecount = 0;
 		for (int x = 4; x >= 0; x--) {
-			if (bammen[x * 9ull + y] != static_cast<std::uint8_t>(Koma::None)) {
+			if (bammen[x * 5ull + y] != static_cast<std::uint8_t>(Koma::None)) {
 				if (nonecount != 0) {
 					usi += std::to_string(nonecount);
 					nonecount = 0;
@@ -497,7 +497,7 @@ void Kyokumen::reflectBitboard() {
 	for (auto& bb : eachKomaBB) {
 		bb.all_reset();
 	}
-	for (int i = 0; i < 81; i++) {
+	for (int i = 0; i < 25; i++) {
 		if (getKoma(i) != koma::Koma::None)
 			eachKomaBB[bammen[i]].set(i);
 	}

@@ -24,7 +24,7 @@ namespace koma {
 		return 5u * x + y;
 	}
 	inline bool Vector2::isInside() {
-		return 0 <= x && x < 9 && 0 <= y && y < 9;
+		return 0 <= x && x < 5 && 0 <= y && y < 5;
 	}
 
 	inline bool Vector2::operator==(const Vector2& v) {

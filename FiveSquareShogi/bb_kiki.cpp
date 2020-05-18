@@ -19,8 +19,8 @@ std::array<std::uint32_t, 5> BBkiki::HiHorizontalMask;
 std::array<size_t, 25> BBkiki::KPIndex;
 std::array<size_t, 25> BBkiki::KNIndex;
 std::array<size_t, 5> BBkiki::HIndex;
-std::array<Bitboard, 60> BBkiki::KakuDashPositive;
-std::array<Bitboard, 60> BBkiki::KakuDashNegative;
+std::array<Bitboard, 68> BBkiki::KakuDashPositive;
+std::array<Bitboard, 68> BBkiki::KakuDashNegative;
 std::array<std::uint32_t, 28> BBkiki::HiDashVertical;
 std::array<std::uint32_t, 28> BBkiki::HiDashHorizontal;
 
@@ -79,7 +79,7 @@ void BBkiki::genMask() {
 		//横
 		for (unsigned long x = 0; x < 5; x++) {
 			Bitboard u(0b0000000001000010000100000UL);
-			u.reset(x * 9u);
+			u.reset(x * 5u);
 			HiHorizontalMask[x] = u._p;
 		}
 	}
@@ -88,10 +88,10 @@ void BBkiki::genMask() {
 		//傾き正
 		for (unsigned long i = 0; i < 25; i++) {
 			Bitboard u;
-			for (long x = (i / 5) - 1, y = (i % 5) - 1; 1 <= x && x <= 4 && 1 <= y && y <= 4; x--, y--) {
+			for (long x = (i / 5) - 1, y = (i % 5) - 1; 1 <= x && x <= 3 && 1 <= y && y <= 3; x--, y--) {
 				u.set(x * 5u + y);
 			}
-			for (long x = (i / 5) + 1, y = (i % 5) + 1; 1 <= x && x <= 4 && 1 <= y && y <= 4; x++, y++) {
+			for (long x = (i / 5) + 1, y = (i % 5) + 1; 1 <= x && x <= 3 && 1 <= y && y <= 3; x++, y++) {
 				u.set(x * 5u + y);
 			}
 			KakuPositiveInclinationMask[i] = u._p;
@@ -99,13 +99,13 @@ void BBkiki::genMask() {
 		//傾き負
 		for (unsigned long i = 0; i < 25; i++) {
 			Bitboard u;
-			for (long x = (i / 5) + 1, y = (i % 5) - 1; 1 <= x && x <= 4 && 1 <= y && y <= 4; x++, y--) {
+			for (long x = (i / 5) + 1, y = (i % 5) - 1; 1 <= x && x <= 3 && 1 <= y && y <= 3; x++, y--) {
 				u.set(x * 5u + y);
 			}
-			for (long x = (i / 5) - 1, y = (i % 5) + 1; 1 <= x && x <= 4 && 1 <= y && y <= 4; x--, y++) {
+			for (long x = (i / 5) - 1, y = (i % 5) + 1; 1 <= x && x <= 3 && 1 <= y && y <= 3; x--, y++) {
 				u.set(x * 5u + y);
 			}
-			KakuPositiveInclinationMask[i] = u._p;
+			KakuNegativeInclinationMask[i] = u._p;
 		}
 	}
 }
@@ -168,7 +168,7 @@ void BBkiki::genDashTable() {
 		for (std::uint32_t k = 0; k < count; k++) {
 			Bitboard ban(_pdep_u32(k, KakuPositiveInclinationMask[pos]));
 			Bitboard kiki = tobikiki(Vector2(x, y), motion::UpRight, ban) | tobikiki(Vector2(x, y), motion::DownLeft, ban);
-			KakuDashPositive[KPIndex[pos] + k] = kiki._p;
+			KakuDashPositive[KPIndex[pos] + k] = kiki;
 		}
 	}
 	//KakuNega
@@ -178,14 +178,14 @@ void BBkiki::genDashTable() {
 		for (std::uint32_t k = 0; k < count; k++) {
 			Bitboard ban(_pdep_u32(k, KakuNegativeInclinationMask[pos]));
 			Bitboard kiki = tobikiki(Vector2(x, y), motion::UpLeft, ban) | tobikiki(Vector2(x, y), motion::DownRight, ban);
-			KakuDashNegative[KNIndex[pos] + k] = kiki._p;
+			KakuDashNegative[KNIndex[pos] + k] = kiki;
 		}
 	}
 }
 
 inline void ippokiki(BBkiki::Barray25& lbs, const std::vector<koma::Vector2>& steps) {
 	using namespace koma;
-	for (unsigned pos = 0; pos < 81; pos++) {
+	for (unsigned pos = 0; pos < 25; pos++) {
 		Bitboard kiki;
 		Vector2 from(pos);
 		for (Vector2 step : steps) {

@@ -17,7 +17,6 @@ private:
 	static double mateScore;
 	static double mateScoreBound;
 	static double mateOneScore;
-	static double repetitionScore;
 	static double Ts_c;
 	static int Ts_FunctionCode;//探索指標の分散を期待値で重みづけするかどうかのフラグ
 	static double T_eval;
@@ -31,7 +30,6 @@ public:
 	static void setMateScore(const double score) { mateScore = score; }
 	static void setMateScoreBound(const double bound) { mateScoreBound = bound; }
 	static void setMateOneScore(const double score) { mateOneScore = score; }
-	static void setRepScore(const double score) { repetitionScore = score; }
 	static double getMateScoreBound() { return mateScoreBound; }
 	static double getMateScore() { return mateScore; }
 	static void setTsFuncParam(const double Ts) { Ts_c = Ts; }
