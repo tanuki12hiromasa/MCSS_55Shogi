@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "commander.h"
+#include "learn_util.h"
 #include "usi.h" 
 #include <iostream>
 #include <iomanip>
@@ -121,7 +122,7 @@ void Commander::coutOption() {
 	cout << "option name DrawMoveNum type spin default 320 min 0 max 1000000" << endl;
 	cout << "option name PV_functionCode type spin default 0 min 0 max 3" << endl;
 	cout << "option name PV_const type string default 0" << endl;
-	cout << "option name resign_matemoves type spin default 3 min 0 max 40" << endl;//投了する詰み手数
+	cout << "option name resign_matemoves type spin default 10 min 0 max 100" << endl;//投了する詰み手数
 	cout << "option name quick_bm_time_lower type spin default 4000 min 1000 max 600000" << endl;//標準時間の下限
 	cout << "option name standard_time_upper type spin default 10000 min 1000 max 6000000" << endl;//標準時間の上限
 	cout << "option name overhead_time type spin default 200 min 0 max 10000" << endl;
@@ -298,6 +299,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 		const auto timelimit = decide_timelimit(tp);
 		auto searchtime = timelimit.first;//探索時間
 		SearchNode* provisonalBestMove = nullptr;//暫定着手
+#if 1 //通常の対局を行う時
 		double provisonal_pi = 0;//暫定着手の方策
 		SearchNode* recentBestNode = nullptr;//直前の最善ノード
 		double pi_average = 0;//最善手の方策の時間平均
@@ -344,6 +346,15 @@ void Commander::go(const std::vector<std::string>& tokens) {
 			recentBestNode = bestnode;
 		} while (std::abs(root->eval) < SearchNode::getMateScoreBound());
 		if (provisonalBestMove == nullptr) provisonalBestMove = recentBestNode;
+#else //学習のために選択方策によりランダムに手を指してほしい時
+		constexpr auto sleeptime = 50ms;
+		do {
+			std::this_thread::sleep_for(sleeptime);
+			provisonalBestMove = LearnUtil::choiceChildRandom(root, 200, random(engine));
+		} while (std::chrono::system_clock::now() - starttime >= searchtime && provisonalBestMove != nullptr 
+			|| std::chrono::system_clock::now() - starttime + sleeptime >= timelimit.second
+			|| std::abs(root->eval) < SearchNode::getMateScoreBound() );
+#endif
 		chakushu(provisonalBestMove);
 		});
 	info_enable = true;

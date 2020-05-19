@@ -31,6 +31,12 @@
     <Filter Include="debug">
       <UniqueIdentifier>{feb4d4ba-81db-4b03-b8f9-e04ee2aaa7ab}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ヘッダー ファイル\learn">
+      <UniqueIdentifier>{7c4e4881-41f1-42a8-bf5a-ee76e151c615}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\learn">
+      <UniqueIdentifier>{9bf3ff52-092f-4fae-aa93-86e420287b13}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -86,6 +92,9 @@
     </ClCompile>
     <ClCompile Include="stest.cpp">
       <Filter>debug</Filter>
+    </ClCompile>
+    <ClCompile Include="learn_util.cpp">
+      <Filter>ソース ファイル\learn</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -157,6 +166,9 @@
     </ClInclude>
     <ClInclude Include="stest.h">
       <Filter>debug</Filter>
+    </ClInclude>
+    <ClInclude Include="learn_util.h">
+      <Filter>ヘッダー ファイル\learn</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

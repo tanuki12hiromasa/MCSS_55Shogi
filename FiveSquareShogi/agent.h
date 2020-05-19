@@ -9,7 +9,6 @@ class SearchAgent {
 public:
 	static void setLeaveQSNode(bool b) { leave_QsearchNode = b; }
 	static void setDrawMoveNum(int n) { drawmovenum = n; }
-	static SearchPlayer getQSbest(SearchNode* const root, SearchPlayer& player, const int limitdepth);
 private:
 	static bool leave_QsearchNode;
 	static int drawmovenum;
