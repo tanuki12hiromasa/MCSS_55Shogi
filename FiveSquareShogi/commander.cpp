@@ -1,5 +1,6 @@
 ﻿#include "stdafx.h"
 #include "commander.h"
+#include "learn_util.h"
 #include "usi.h" 
 #include <iostream>
 #include <iomanip>
@@ -121,9 +122,9 @@ void Commander::coutOption() {
 	cout << "option name DrawMoveNum type spin default 320 min 0 max 1000000" << endl;
 	cout << "option name PV_functionCode type spin default 0 min 0 max 3" << endl;
 	cout << "option name PV_const type string default 0" << endl;
-	cout << "option name resign_matemoves type spin default 3 min 0 max 40" << endl;//投了する詰み手数
-	cout << "option name quick_bm_time_lower type spin default 4000 min 1000 max 600000" << endl;//即指しの判定時間の下限
-	cout << "option name quick_bm_time_upper type spin default 20000 min 1000 max 6000000" << endl;//即指しの判定時間の上限
+	cout << "option name resign_matemoves type spin default 10 min 0 max 100" << endl;//投了する詰み手数
+	cout << "option name quick_bm_time_lower type spin default 4000 min 1000 max 600000" << endl;//標準時間の下限
+	cout << "option name standard_time_upper type spin default 10000 min 1000 max 6000000" << endl;//標準時間の上限
 	cout << "option name overhead_time type spin default 200 min 0 max 10000" << endl;
 	cout << "option name estimate_movesnum type spin default 120 min 0 max 10000" << endl;
 }
@@ -197,8 +198,8 @@ void Commander::setOption(const std::vector<std::string>& token) {
 		else if (token[2] == "quick_bm_time_lower") {
 			time_quickbm_lower = std::chrono::milliseconds(std::stoi(token[4]));
 		}
-		else if (token[2] == "quick_bm_time_upper") {
-			time_quickbm_upper = std::chrono::milliseconds(std::stoi(token[4]));
+		else if (token[2] == "standard_time_upper") {
+			time_standard_upper = std::chrono::milliseconds(std::stoi(token[4]));
 		}
 		else if (token[2] == "overhead_time") {
 			time_overhead = std::chrono::milliseconds(std::stoi(token[4]));
@@ -298,6 +299,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 		const auto timelimit = decide_timelimit(tp);
 		auto searchtime = timelimit.first;//探索時間
 		SearchNode* provisonalBestMove = nullptr;//暫定着手
+#if 1 //通常の対局を行う時
 		double provisonal_pi = 0;//暫定着手の方策
 		SearchNode* recentBestNode = nullptr;//直前の最善ノード
 		double pi_average = 0;//最善手の方策の時間平均
@@ -326,7 +328,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 				continuous_counter = 1;
 			}
 			//即指しの条件を満たしたら指す
-			if (continuous_counter * sleeptime > std::min(std::max(timelimit.first / 2, time_quickbm_lower), time_quickbm_upper)) {
+			if (continuous_counter * sleeptime > std::max(timelimit.first / 2, time_quickbm_lower)) {
 				break;
 			}
 			if ((loopcounter & 0xF) == 0) {
@@ -344,6 +346,15 @@ void Commander::go(const std::vector<std::string>& tokens) {
 			recentBestNode = bestnode;
 		} while (std::abs(root->eval) < SearchNode::getMateScoreBound());
 		if (provisonalBestMove == nullptr) provisonalBestMove = recentBestNode;
+#else //学習のために選択方策によりランダムに手を指してほしい時
+		constexpr auto sleeptime = 50ms;
+		do {
+			std::this_thread::sleep_for(sleeptime);
+			provisonalBestMove = LearnUtil::choiceChildRandom(root, 200, random(engine));
+		} while (std::chrono::system_clock::now() - starttime >= searchtime && provisonalBestMove != nullptr 
+			|| std::chrono::system_clock::now() - starttime + sleeptime >= timelimit.second
+			|| std::abs(root->eval) < SearchNode::getMateScoreBound() );
+#endif
 		chakushu(provisonalBestMove);
 		});
 	info_enable = true;
@@ -354,13 +365,13 @@ std::pair<std::chrono::milliseconds, std::chrono::milliseconds> Commander::decid
 	using namespace std::chrono_literals;
 	switch (time.rule) {
 		case TimeProperty::TimeRule::byoyomi: {
-			const auto standerd_time = std::max(time.left / std::max(estimate_movesnum - tree.getMoveNum(), 5), time.added) - time_overhead;
+			const auto standerd_time = std::min(std::max(time.left / std::max(estimate_movesnum - tree.getMoveNum(), 5), time.added), time_standard_upper) - time_overhead;
 			const auto limit_time = time.left + time.added - time_overhead;
 			return std::make_pair(standerd_time, limit_time);
 		}
 		case TimeProperty::TimeRule::fischer: {
-			const int expected_movesleft = std::max(estimate_movesnum - tree.getMoveNum(), 2);
-			const auto standerd_time = time.left / expected_movesleft + time.added - time_overhead;
+			const int expected_movesleft = std::max(estimate_movesnum - tree.getMoveNum(), 5);
+			const auto standerd_time = std::min(time.left / expected_movesleft + time.added, time_standard_upper) - time_overhead;
 			const auto limit_time = time.left + time.added - time_overhead;
 			return std::make_pair(standerd_time, limit_time);
 		}

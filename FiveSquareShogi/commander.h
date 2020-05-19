@@ -36,9 +36,9 @@ private:
 	double Ts_max = 200;
 	int TsDistFuncNum = 0;
 	std::vector<double> TsDistribution;
-	int resign_border = 3;
+	int resign_border = 10;
 	std::chrono::milliseconds time_quickbm_lower{ 4000 };
-	std::chrono::milliseconds time_quickbm_upper{ 20000 };
+	std::chrono::milliseconds time_standard_upper{ 10000 };
 	std::chrono::milliseconds time_overhead{ 150 };
 	int estimate_movesnum = 120;
 
@@ -52,6 +52,10 @@ private:
 
 	std::mutex coutmtx;
 	std::mutex treemtx;
+
+	//値域 [0,1.0) のランダムな値
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
 
 	friend class ShogiTest;
 };

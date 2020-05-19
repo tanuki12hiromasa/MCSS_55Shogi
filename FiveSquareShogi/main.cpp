@@ -2,12 +2,14 @@
 //
 #include "stdafx.h"
 #include "commander.h"
+#include "stest.h"
 #include <iostream>
 
 int main(int argc, char* argv[])
 {
     std::string enginename = (argc < 2) ? "FiveSQSoftmax" : argv[1];
     Commander::execute(enginename);
+    //ShogiTest::test();
 }
 
 // プログラムの実行: Ctrl + F5 または [デバッグ] > [デバッグなしで開始] メニュー
