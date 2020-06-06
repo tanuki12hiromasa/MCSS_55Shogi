@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "stest.h"
 #include "usi.h"
+#include "kppt_learn.h"
 #include <iostream>
 
 void ShogiTest::test() {
@@ -14,6 +15,20 @@ void ShogiTest::test() {
 	checkGenMove("position startpos moves 4e4d 4a5b");
 	checkGenMove("position startpos moves 4e4d 4a5b 2e5b 5a5b");
 	checkGenMove("position startpos moves 4e4d 4a5b 2e5b 5a5b 1e2e B*2b");
+	Kyokumen k;
+	k.proceed(Move(4, 1, false));
+	SearchPlayer p(k);
+	auto w = kppt::kppt_paramVector(p);
+	for (int i = 0; i < kppt::SquareNum; i++) {
+		for (int j = 0; j < kppt::fe_end; j++) {
+			for (int k = 0; k < kppt::fe_end; k++) {
+				if (w.KPP[i][j][k][0] != 0 || w.KPP[i][j][k][1] != 0) {
+					cout << i << " " << j << " " << k << "\n";
+					cout << w.KPP[i][j][k][0] << " " << w.KPP[i][j][k][1] << "\n";
+				}
+			}
+		}
+	}
 }
 
 void ShogiTest::checkGenMove(const std::string& usipos) {

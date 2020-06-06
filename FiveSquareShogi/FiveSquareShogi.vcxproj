@@ -183,6 +183,7 @@
     <ClInclude Include="kppt_param.h" />
     <ClInclude Include="kyokumen.h" />
     <ClInclude Include="leaf_guard.h" />
+    <ClInclude Include="learner.h" />
     <ClInclude Include="learn_util.h" />
     <ClInclude Include="move.h" />
     <ClInclude Include="move_gen.h" />

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "commander.h"
 #include "learn_util.h"
 #include "usi.h" 

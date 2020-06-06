@@ -2,26 +2,35 @@
 
 namespace kppt {
 	kppt_paramVector::kppt_paramVector(const SearchPlayer& player) {
-		KPP = new KPPEvalVectorFloat1[SquareNum];
-		KKP = new KKPEvalVectorFloat1[SquareNum];
-		set(player);
+		KPP = new EvalVectorFloat[lkpptnum];
+		KKP = new EvalVectorFloat[lkkptnum];
+		reset();
+	}
+
+	void kppt_paramVector::reset() {
+		EvalVectorFloat* const kpp = KPP;
+		for (int i = 0; i < lkpptnum; i++) {
+			kpp[i] = 0;
+		}
+		EvalVectorFloat* const kkp = KKP;
+		for (int i = 0; i < lkkptnum; i++) {
+			kkp[i] = 0;
+		}
 	}
 
 	void kppt_paramVector::set(const SearchPlayer& player) {
-		for (int h = 0; h < SquareNum; h++) {
-			for (int i = 0; i < fe_end; i++) {
-				for (int j = 0; j < fe_end; j++) {
-					KPP[h][i][j] = { 0,0 };
-				}
-			}
-			for (int i = 0; i < SquareNum; i++) {
-				for (int j = 0; j < fe_end; j++) {
-					KKP[h][i][j] = { 0,0 };
-				}
-			}
+		EvalVectorFloat* const kpp = KPP;
+		for (int i = 0; i < lkpptnum; i++) {
+			kpp[i] = 0;
+		}
+		EvalVectorFloat* const kkp = KKP;
+		for (int i = 0; i < lkkptnum; i++) {
+			kkp[i] = 0;
 		}
 		const unsigned skpos = player.kyokumen.sOuPos();
 		const unsigned gkpos = player.kyokumen.gOuPos();
+		const unsigned invskpos = inverse(skpos);
+		const unsigned invgkpos = inverse(gkpos);
 		auto* ppskpp = KPP[skpos];
 		auto* ppgkpp = KPP[inverse(gkpos)];
 		if (player.kyokumen.teban()) {
@@ -30,8 +39,7 @@ namespace kppt {
 				const int k1 = player.feature.idlist.list1[i];
 				auto* pskpp = ppskpp[k0];
 				auto* pgkpp = ppgkpp[k1];
-				for (int j = 0; j < EvalList::EvalListSize; j++) {
-					if (i == j)continue;
+				for (int j = 0; j < i; j++) {
 					const int l0 = player.feature.idlist.list0[j];
 					const int l1 = player.feature.idlist.list1[j];
 					pskpp[l0][0] += 1; pskpp[l0][1] += 1;

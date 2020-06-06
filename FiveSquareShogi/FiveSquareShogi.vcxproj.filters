@@ -176,5 +176,8 @@
     <ClInclude Include="kppt_learn.h">
       <Filter>kppt</Filter>
     </ClInclude>
+    <ClInclude Include="learner.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
