@@ -18,13 +18,14 @@ void ShogiTest::test() {
 	Kyokumen k;
 	k.proceed(Move(4, 1, false));
 	SearchPlayer p(k);
-	auto w = kppt::kppt_paramVector(p);
+	auto w = kppt::kppt_paramVector();
+	w.addGrad(1, p, k.teban());
 	for (int i = 0; i < kppt::SquareNum; i++) {
 		for (int j = 0; j < kppt::fe_end; j++) {
 			for (int k = 0; k < kppt::fe_end; k++) {
-				if (w.KPP[i][j][k][0] != 0 || w.KPP[i][j][k][1] != 0) {
+				if (w.KPP[kppt::kpptToLkpptnum(i,j,k,0)] != 0 || w.KPP[kppt::kpptToLkpptnum(i, j, k, 1)] != 0) {
 					cout << i << " " << j << " " << k << "\n";
-					cout << w.KPP[i][j][k][0] << " " << w.KPP[i][j][k][1] << "\n";
+					cout << w.KPP[kppt::kpptToLkpptnum(i, j, k, 0)] << " " << w.KPP[kppt::kpptToLkpptnum(i, j, k, 1)] << "\n";
 				}
 			}
 		}

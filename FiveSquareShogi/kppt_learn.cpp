@@ -43,61 +43,49 @@ namespace kppt {
 	void kppt_paramVector::addGrad(float scalar,const SearchPlayer& player,bool rootTeban) {
 		if (std::abs(scalar) < 0.00000001f) return;
 		EvalVectorFloat* const kpp = KPP;
-		for (int i = 0; i < lkpptnum; i++) {
-			kpp[i] = 0;
-		}
 		EvalVectorFloat* const kkp = KKP;
-		for (int i = 0; i < lkkptnum; i++) {
-			kkp[i] = 0;
-		}
 		const unsigned skpos = player.kyokumen.sOuPos();
 		const unsigned gkpos = player.kyokumen.gOuPos();
-		const unsigned invskpos = inverse(skpos);
 		const unsigned invgkpos = inverse(gkpos);
-		auto* ppskpp = KPP[skpos];
-		auto* ppgkpp = KPP[inverse(gkpos)];
-		if (player.kyokumen.teban()) {
-			for (int i = 0; i < EvalList::EvalListSize; ++i) {
-				const int k0 = player.feature.idlist.list0[i];
-				const int k1 = player.feature.idlist.list1[i];
-				auto* pskpp = ppskpp[k0];
-				auto* pgkpp = ppgkpp[k1];
-				for (int j = 0; j < i; j++) {
-					const int l0 = player.feature.idlist.list0[j];
-					const int l1 = player.feature.idlist.list1[j];
-					pskpp[l0][0] += 1; pskpp[l0][1] += 1;
-					pgkpp[l1][0] -= 1; pgkpp[l1][1] += 1;
-				}
-				KKP[skpos][gkpos][k0][0] += 1;
-				KKP[gkpos][skpos][k1][0] -= 1;
-				KKP[skpos][gkpos][k0][1] += 1;
-				KKP[gkpos][skpos][k1][1] += 1;
+		const float bammenscalar = (player.kyokumen.teban()) ? scalar : -scalar;
+		const float tebanscalar = (player.kyokumen.teban() == rootTeban) ? scalar : -scalar;
+		for (unsigned i = 0; i < EvalList::EvalListSize; ++i) {
+			const int k0 = player.feature.idlist.list0[i];
+			const int k1 = player.feature.idlist.list1[i];
+			for (unsigned j = 0; j < i; j++) {
+				const int l0 = player.feature.idlist.list0[j];
+				const int l1 = player.feature.idlist.list1[j];
+
+				kpp[kpptToLkpptnum(skpos, k0, l0, 0)] += bammenscalar;
+				kpp[kpptToLkpptnum(skpos, k0, l0, 1)] += tebanscalar;
+				kpp[kpptToLkpptnum(invgkpos, k1, l1, 0)] -= bammenscalar;
+				kpp[kpptToLkpptnum(invgkpos, k1, l1, 1)] += tebanscalar;
 			}
-		}
-		else {
-			for (int i = 0; i < EvalList::EvalListSize; ++i) {
-				const int k0 = player.feature.idlist.list0[i];
-				const int k1 = player.feature.idlist.list1[i];
-				auto* pskpp = ppskpp[k0];
-				auto* pgkpp = ppgkpp[k1];
-				for (int j = 0; j < EvalList::EvalListSize; j++) {
-					if (i == j)continue;
-					const int l0 = player.feature.idlist.list0[j];
-					const int l1 = player.feature.idlist.list1[j];
-					pskpp[l0][0] -= 1; pskpp[l0][1] += 1;
-					pgkpp[l1][0] += 1; pgkpp[l1][1] += 1;
-				}
-				KKP[skpos][gkpos][k0][0] -= 1;
-				KKP[gkpos][skpos][k1][0] += 1;
-				KKP[skpos][gkpos][k0][1] += 1;
-				KKP[gkpos][skpos][k1][1] += 1;
-			}
+			kkp[kkptToLkkptnum(skpos, gkpos, k0, 0)] += bammenscalar;
+			kkp[kkptToLkkptnum(skpos, gkpos, k0, 1)] += tebanscalar;
 		}
 	}
 
 	void kppt_paramVector::updateEval()const {
 		//KPPのテーブル形式の違いに注意する
-
+		for (unsigned k = 0; k < SquareNum; k++) {
+			for (unsigned p1 = 0; p1 < fe_end; p1++) {
+				for (unsigned p2 = 0; p2 < p1; p2++) {
+					float val = KPP[kpptToLkpptnum(k, p1, p2, 0)];
+					kppt::KPP[k][p1][p2][0] += val; kppt::KPP[k][p2][p1][0] += val;
+					val = KPP[kpptToLkpptnum(k, p1, p2, 1)];
+					kppt::KPP[k][p1][p2][1] += val; kppt::KPP[k][p2][p1][1] += val;
+				}
+			}
+		}
+		for (unsigned sk = 0; sk < SquareNum; sk++) {
+			for (unsigned gk = 0; gk < SquareNum; gk++) {
+				for (unsigned p = 0; p < fe_end; p++) {
+					kppt::KKP[sk][gk][p][0] += KKP[kkptToLkkptnum(sk, gk, p, 0)];
+					kppt::KKP[sk][gk][p][1] += KKP[kkptToLkkptnum(sk, gk, p, 1)];
+				}
+			}
+		}
 	}
 
 	kppt_paramVector& kppt_paramVector::operator+=(const kppt_paramVector& rhs) {

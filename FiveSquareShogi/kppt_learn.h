@@ -11,7 +11,7 @@ namespace kppt {
 	using KKPEvalVectorFloat = EvalVectorFloat[lkkptnum];
 	constexpr size_t l_pp_num = fe_end * (fe_end - 1);
 	constexpr size_t l_kk_num = SquareNum * (SquareNum - 1);
-	constexpr size_t kpptToLkpptnum(const unsigned k, const unsigned p1, const unsigned p2, const unsigned t) { assert(p1 != p2); const size_t p = (p1 > p2) ? (p1 * (p1 - 1) + p2 * 2) : p2 * (p2 - 1) + p1 * 2; return k * l_pp_num + p + t; }
+	constexpr size_t kpptToLkpptnum(const unsigned k, const unsigned p1, const unsigned p2, const unsigned t) { assert(p1 != p2); const size_t p = (p1 > p2) ? (p1 * (p1 - 1) + p2 * 2) : (p2 * (p2 - 1) + p1 * 2); return k * l_pp_num + p + t; }
 	constexpr size_t kkptToLkkptnum(const unsigned k1, const unsigned k2, const unsigned p, const unsigned t) { return (k1 * SquareNum + k2) * 2 * fe_end + p * 2 + t; }
 
 	class kppt_paramVector {
@@ -42,5 +42,5 @@ namespace kppt {
 		friend class kppt_learn;
 		friend class ShogiTest;
 	};
-	kppt_paramVector::fvpair operator*(const float lhs, const kppt_paramVector& rhs) { return kppt_paramVector::fvpair(lhs,rhs); }
+	inline kppt_paramVector::fvpair operator*(const float lhs, const kppt_paramVector& rhs) { return kppt_paramVector::fvpair(lhs,rhs); }
 }
