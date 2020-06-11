@@ -12,12 +12,19 @@ void Learner::execute() {
 			std::cout << "command ready" << std::endl;
 		}
 		else if (tokens[0] == "init") {
+			//設定ファイルを読み込む
+			//init 設定ファイル.txt
 			learner.init(tokens);
 		}
 		else if (tokens[0] == "rlearn") {
-			learner.reinforcement_learn(tokens);
+			//強化学習で勾配ベクトルを求める
+			//rlearn sfen startpos moves ... 
+			const auto grad = learner.reinforcement_learn(tokens);
+			grad.updateEval();
 		}
 		else if (tokens[0] == "saveparam") {
+			//更新したパラメータを保存
+			//saveparam [保存先フォルダ]
 			if (tokens.size() > 2) Evaluator::setpath_input(usiin.substr(10));
 			Evaluator::save();
 		}
@@ -25,6 +32,25 @@ void Learner::execute() {
 			break;
 		}
 	}
+}
+
+void Learner::init(const std::vector<std::string>& cmdtokens) {
+
+}
+
+void Learner::search(SearchTree& tree) {
+	std::vector<std::unique_ptr<SearchAgent>> agents;
+	for (int i = 0; i < agentnum; i++) {
+		agents.push_back(std::unique_ptr<SearchAgent>(new SearchAgent(tree, T_search, i)));
+	}
+	std::this_thread::sleep_for(searchtime);
+	for (auto& ag : agents) {
+		ag->stop();
+	}
+	for (auto& ag : agents) {
+		ag->terminate();
+	}
+	agents.clear();
 }
 
 //どちらが勝ったかを返す関数 1:先手勝ち -1:後手勝ち 0:引き分け

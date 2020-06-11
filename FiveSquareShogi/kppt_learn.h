@@ -37,7 +37,6 @@ namespace kppt {
 	public:
 		kppt_paramVector& operator+=(const kppt_paramVector& rhs);
 		kppt_paramVector& operator+=(const fvpair& rhs);
-		kppt_paramVector& operator-=(const kppt_paramVector& rhs);
 		kppt_paramVector& operator*=(const double c);
 
 		friend class kppt_learn;

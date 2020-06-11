@@ -7,6 +7,28 @@ namespace kppt {
 		reset();
 	}
 
+	kppt_paramVector::kppt_paramVector(kppt_paramVector&& rhs) noexcept {
+		KPP = rhs.KPP;
+		KKP = rhs.KKP;
+		rhs.KPP = nullptr;
+		rhs.KKP = nullptr;
+	}
+
+	kppt_paramVector& kppt_paramVector::operator=(kppt_paramVector&& rhs)noexcept {
+		delete[] KPP;
+		delete[] KKP;
+		KPP = rhs.KPP;
+		KKP = rhs.KKP;
+		rhs.KPP = nullptr;
+		rhs.KKP = nullptr;
+		return *this;
+	}
+
+	kppt_paramVector::~kppt_paramVector() {
+		delete[] KPP;
+		delete[] KKP;
+	}
+
 	void kppt_paramVector::reset() {
 		EvalVectorFloat* const kpp = KPP;
 		for (int i = 0; i < lkpptnum; i++) {
@@ -18,7 +40,8 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::set(const SearchPlayer& player) {
+	void kppt_paramVector::addGrad(float scalar,const SearchPlayer& player,bool rootTeban) {
+		if (std::abs(scalar) < 0.00000001f) return;
 		EvalVectorFloat* const kpp = KPP;
 		for (int i = 0; i < lkpptnum; i++) {
 			kpp[i] = 0;
@@ -72,21 +95,33 @@ namespace kppt {
 		}
 	}
 
-	kppt_paramVector::kppt_paramVector(kppt_paramVector&& rhs) noexcept {
-		KPP = rhs.KPP;
-		KKP = rhs.KKP;
-		rhs.KPP = nullptr;
-		rhs.KKP = nullptr;
+	void kppt_paramVector::updateEval()const {
+		//KPPのテーブル形式の違いに注意する
+
 	}
 
-	kppt_paramVector& kppt_paramVector::operator=(kppt_paramVector&& rhs)noexcept {
-		delete[] KPP;
-		delete[] KKP;
-		KPP = rhs.KPP;
-		KKP = rhs.KKP;
-		rhs.KPP = nullptr;
-		rhs.KKP = nullptr;
-		return *this;
+	kppt_paramVector& kppt_paramVector::operator+=(const kppt_paramVector& rhs) {
+		for (size_t i = 0; i < lkpptnum; i++) {
+			KPP[i] += rhs.KPP[i];
+		}
+		for (size_t i = 0; i < lkkptnum; i++) {
+			KKP[i] += rhs.KKP[i];
+		}
 	}
-
+	kppt_paramVector& kppt_paramVector::operator+=(const fvpair& rhs) {
+		for (size_t i = 0; i < lkpptnum; i++) {
+			KPP[i] += rhs.f * rhs.v.KPP[i];
+		}
+		for (size_t i = 0; i < lkkptnum; i++) {
+			KKP[i] += rhs.f * rhs.v.KKP[i];
+		}
+	}
+	kppt_paramVector& kppt_paramVector::operator*=(const double c) {
+		for (size_t i = 0; i < lkpptnum; i++) {
+			KPP[i] *= c;
+		}
+		for (size_t i = 0; i < lkkptnum; i++) {
+			KKP[i] *= c;
+		}
+	}
 }
