@@ -1,7 +1,7 @@
 ﻿#include "kppt_learn.h"
 
 namespace kppt {
-	kppt_paramVector::kppt_paramVector(const SearchPlayer& player) {
+	kppt_paramVector::kppt_paramVector() {
 		KPP = new EvalVectorFloat[lkpptnum];
 		KKP = new EvalVectorFloat[lkkptnum];
 		reset();

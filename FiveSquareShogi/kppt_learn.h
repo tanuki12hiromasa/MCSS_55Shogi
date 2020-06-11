@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "kppt_evaluate.h"
 #include <cassert>
+#include <functional>
 
 namespace kppt {
 	constexpr size_t lkpptnum = SquareNum * fe_end * (fe_end - 1); //kpptテーブルのppの被りを消した三角テーブルを一次元にしている セル数はSQnum*(fe*(fe-1)/2)*2
@@ -15,29 +16,32 @@ namespace kppt {
 
 	class kppt_paramVector {
 	public:
-		kppt_paramVector(const SearchPlayer&);
+		kppt_paramVector();
 		kppt_paramVector(kppt_paramVector&&)noexcept;
 		kppt_paramVector& operator=(kppt_paramVector&&)noexcept;
 		~kppt_paramVector();
 		kppt_paramVector(const kppt_paramVector&) = delete;
 		kppt_evaluator& operator=(const kppt_paramVector&) = delete;
 
-		void addGrad(float scalar,const SearchPlayer&,bool rootTeban);
 		void reset();
+		void addGrad(float scalar,const SearchPlayer&,bool rootTeban);
+
+		void updateEval()const;
 	private:
 		EvalVectorFloat* KPP;
 		EvalVectorFloat* KKP;
 		 
 	public:
+		struct fvpair { const float f; const kppt_paramVector& v; fvpair(const float f, const kppt_paramVector& v) :f(f), v(v) {} };
+
+	public:
 		kppt_paramVector& operator+=(const kppt_paramVector& rhs);
+		kppt_paramVector& operator+=(const fvpair& rhs);
 		kppt_paramVector& operator-=(const kppt_paramVector& rhs);
 		kppt_paramVector& operator*=(const double c);
 
 		friend class kppt_learn;
 		friend class ShogiTest;
 	};
-
-	class kppt_learn {
-		static void updateEvalParam(const kppt_paramVector&);
-	};
+	kppt_paramVector::fvpair operator*(const float lhs, const kppt_paramVector& rhs) { return kppt_paramVector::fvpair(lhs,rhs); }
 }

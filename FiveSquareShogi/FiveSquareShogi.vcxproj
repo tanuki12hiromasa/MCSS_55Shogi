@@ -157,6 +157,7 @@
     <ClCompile Include="kppt_learn.cpp" />
     <ClCompile Include="kyokumen.cpp" />
     <ClCompile Include="leaf_guard.cpp" />
+    <ClCompile Include="learner.cpp" />
     <ClCompile Include="learn_util.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="move.cpp" />

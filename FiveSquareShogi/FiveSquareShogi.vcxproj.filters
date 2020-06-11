@@ -99,6 +99,9 @@
     <ClCompile Include="kppt_learn.cpp">
       <Filter>kppt</Filter>
     </ClCompile>
+    <ClCompile Include="learner.cpp">
+      <Filter>ソース ファイル\learn</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
@@ -177,7 +180,7 @@
       <Filter>kppt</Filter>
     </ClInclude>
     <ClInclude Include="learner.h">
-      <Filter>ヘッダー ファイル</Filter>
+      <Filter>ヘッダー ファイル\learn</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
