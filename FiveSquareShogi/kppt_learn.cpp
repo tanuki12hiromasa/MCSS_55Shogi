@@ -95,6 +95,7 @@ namespace kppt {
 		for (size_t i = 0; i < lkkptnum; i++) {
 			KKP[i] += rhs.KKP[i];
 		}
+		return *this;
 	}
 	kppt_paramVector& kppt_paramVector::operator+=(const fvpair& rhs) {
 		for (size_t i = 0; i < lkpptnum; i++) {
@@ -103,6 +104,7 @@ namespace kppt {
 		for (size_t i = 0; i < lkkptnum; i++) {
 			KKP[i] += rhs.f * rhs.v.KKP[i];
 		}
+		return *this;
 	}
 	kppt_paramVector& kppt_paramVector::operator*=(const double c) {
 		for (size_t i = 0; i < lkpptnum; i++) {
@@ -111,5 +113,6 @@ namespace kppt {
 		for (size_t i = 0; i < lkkptnum; i++) {
 			KKP[i] *= c;
 		}
+		return *this;
 	}
 }

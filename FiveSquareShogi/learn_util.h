@@ -11,4 +11,5 @@ public:
 	static LearnVec getGrad(const SearchNode* const root, const SearchPlayer& player, bool teban,unsigned long long samplingnum);
 	static double EvalToProb(const double eval);
 	static constexpr double probT = 600.0;
+	static double pTb;
 };

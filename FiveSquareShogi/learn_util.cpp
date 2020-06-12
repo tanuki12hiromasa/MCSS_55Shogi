@@ -1,5 +1,7 @@
 ﻿#include "learn_util.h"
 
+double LearnUtil::pTb = 0.015765;//評価関数をシグモイド関数に写像した場合の方策の温度は、(元の温度)*(写像先の標準的な評価値差)/(元の標準的な評価値差)で求められる。
+
 SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const double T, double pip) {
 	using dn = std::pair<double, SearchNode*>;
 	double CE = std::numeric_limits<double>::max();
@@ -96,14 +98,17 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 	for (unsigned long long i = 0; i < samplingnum; i++) {
 		const SearchNode* node = root;
 		double c = 1;
-		double eval_prev = node->eval;
+		double Peval_prev = EvalToProb(node->eval);
 		SearchPlayer player = rootplayer;
 		while (!node->isLeaf()) {
 			node = choiceChildRandom(node, T, random(engine));
 			player.proceed(node->move);
-			c *= (node->eval + eval_prev) / T - 1;
-			eval_prev = node->eval;
+			const double Peval = EvalToProb(node->eval);
+			c *= (Peval + Peval_prev) / pTb - 1;
+			Peval_prev = Peval;
 		}
+		const double Peval = EvalToProb(node->eval);
+		c *= probT * Peval * (1 - Peval);
 		vec.addGrad(c, getQSBest(node, player, 8), teban);
 	}
 	vec *= 1.0 / samplingnum;

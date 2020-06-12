@@ -15,18 +15,26 @@ void Learner::execute() {
 			//設定ファイルを読み込む
 			//init 設定ファイル.txt
 			learner.init(tokens);
+			std::cout << "init done." << std::endl;
+		}
+		else if (tokens[0] == "genparam") {
+			//学習前の初期パラメータを生成する
+			//genparam 出力先フォルダ
+
 		}
 		else if (tokens[0] == "rlearn") {
 			//強化学習で勾配ベクトルを求める
 			//rlearn sfen startpos moves ... 
 			const auto grad = learner.reinforcement_learn(tokens);
 			grad.updateEval();
+			std::cout << "rlearn done." << std::endl;
 		}
 		else if (tokens[0] == "saveparam") {
 			//更新したパラメータを保存
 			//saveparam [保存先フォルダ]
 			if (tokens.size() > 2) Evaluator::setpath_input(usiin.substr(10));
 			Evaluator::save();
+			std::cout << "saveparam done." << std::endl;
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -35,7 +43,8 @@ void Learner::execute() {
 }
 
 void Learner::init(const std::vector<std::string>& cmdtokens) {
-
+	BBkiki::init();
+	Evaluator::init();
 }
 
 void Learner::search(SearchTree& tree) {
@@ -76,6 +85,7 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	double Pwin_result = getWinner(sfen);
 	const auto kifu = Move::usiToMoves(sfen);
 	int kifuLength = kifu.size();
+	std::cout << "L=" << kifuLength << std::endl;
 	const double Tb = SearchNode::getTeval();
 	//tree初期化
 	SearchTree tree;
@@ -83,12 +93,10 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	LearnVec dw;
 	LearnVec td_e;
 	double Pwin_prev = 0.5f;
+	std::cout << "reinforcement learning " << std::endl;
 	search(tree);
 	for (int t = 0; t < kifuLength - 1; t++) {
 		const auto root = tree.getRoot();
-		if (std::abs(root->eval) >= SearchNode::getMateScoreBound()) {
-			kifuLength = t - 1;//ここbreakするかで要検討
-		}
 		double Pwin = LearnUtil::EvalToProb(root->eval);
 		//TD-清算
 		if (t > 0) {
@@ -134,6 +142,7 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 			tree.makeNewTree(startKyokumen, t_kifu);
 		}
 		tree.deleteBranch(root, { nextroot });
+		std::cout << "t=" << t << std::endl;
 		search(tree);
 	}
 	//TD-清算
@@ -141,5 +150,6 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	dw += learning_rate_td * ((Pwin_result * 2 - 1) + td_gamma * (1 - Pwin) - Pwin_prev) * td_e;
 	//ノード消去
 	tree.deleteTree(tree.getHistory().front());
+	std::cout << "reinforcement learning finished." << std::endl;
 	return dw;
 }
