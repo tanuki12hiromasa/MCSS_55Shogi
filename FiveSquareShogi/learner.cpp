@@ -1,5 +1,6 @@
 ﻿#include "learner.h"
 #include <iostream>
+#include <fstream>
 #include "usi.h"
 
 void Learner::execute() {
@@ -35,6 +36,11 @@ void Learner::execute() {
 			if (tokens.size() > 2) Evaluator::setpath_input(usiin.substr(10));
 			Evaluator::save();
 			std::cout << "saveparam done." << std::endl;
+		}
+		else if (tokens[0] == "crl") {
+			//rlearnを連続で行う 
+			//crl 棋譜.sfen
+			learner.consecutive_rl(usiin.substr(4));
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -84,6 +90,7 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	const Kyokumen startKyokumen(cmdtokens);
 	double Pwin_result = getWinner(sfen);
 	const auto kifu = Move::usiToMoves(sfen);
+	std::vector<Move> history;
 	int kifuLength = kifu.size();
 	std::cout << "L=" << kifuLength << std::endl;
 	const double Tb = SearchNode::getTeval();
@@ -107,13 +114,12 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 		for (const auto child : root->children) if (child->eval < Emin) Emin = child->eval;
 		double Z = 0;
 		for (const auto child : root->children)	Z += std::exp(-(child->eval - Emin) / Tb);
-		SearchNode* nextroot = nullptr;
 		for (const auto child : root->children) {
 			SearchPlayer player = tree.getRootPlayer();
 			player.proceed(child->move);
 			double pi = std::exp(-(child->eval - Emin) / Tb) / Z;
 			if (pi < child_pi_limit) continue;
-			const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * samplingrate * tree.getNodeCount());
+			const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * 1000);
 			rootVec += pi * ((root->eval + child->eval) / Tb - 1) * childVec;
 			const double Pwin_child = LearnUtil::EvalToProb(child->eval);
 			//bts-pp
@@ -121,7 +127,6 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 			//pg-leaf
 			if (child->move == kifu[t + 1]) {
 				dw += -learning_rate_pge * childVec;
-				nextroot = child;
 			}
 			dw += learning_rate_pge * pi * childVec;
 		}
@@ -134,14 +139,9 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 		td_e += rootVec;
 		Pwin_prev = Pwin;
 		//proceed
-		if(nextroot != nullptr)
-			tree.proceed(nextroot);
-		else {
-			tree.deleteTree(tree.getHistory().front());
-			std::vector<Move> t_kifu(t + 1); std::copy(kifu.begin(), kifu.begin() + (t + 1), t_kifu.begin());
-			tree.makeNewTree(startKyokumen, t_kifu);
-		}
-		tree.deleteBranch(root, { nextroot });
+		history.push_back(kifu[t]);
+		tree.clear();
+		tree.makeNewTree(startKyokumen, history);
 		std::cout << "t=" << t << std::endl;
 		search(tree);
 	}
@@ -149,7 +149,23 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	double Pwin = LearnUtil::EvalToProb(tree.getRoot()->eval);
 	dw += learning_rate_td * ((Pwin_result * 2 - 1) + td_gamma * (1 - Pwin) - Pwin_prev) * td_e;
 	//ノード消去
-	tree.deleteTree(tree.getHistory().front());
+	tree.clear();
 	std::cout << "reinforcement learning finished." << std::endl;
 	return dw;
+}
+
+void Learner::consecutive_rl(const std::string& sfenfile) {
+	std::ifstream ifs(sfenfile);
+	while (!ifs.eof()) {
+		std::string line;
+		std::getline(ifs, line);
+		std::cout << line << std::endl;
+		line = "rlearn " + line;
+		const auto tokens = usi::split(line, ' ');
+		if (tokens.size() < 3)continue;
+		const auto dw = reinforcement_learn(tokens);
+		dw.updateEval();
+	}
+	Evaluator::save();
+	std::cout << "learning finished." << std::endl;
 }

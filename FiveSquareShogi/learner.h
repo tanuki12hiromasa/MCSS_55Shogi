@@ -10,9 +10,10 @@ private:
 	void init(const std::vector<std::string>& cmdtokens);
 	void search(SearchTree& tree);
 	LearnVec reinforcement_learn(const std::vector<std::string>& cmdtokens);
+	void consecutive_rl(const std::string& sfenfile);
 
 	double T_search = 120;
-	std::chrono::milliseconds searchtime{ 300 };
+	std::chrono::milliseconds searchtime{ 1000 };
 	int agentnum = 8;
 
 	double child_pi_limit = 0.00005;
