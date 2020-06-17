@@ -22,14 +22,13 @@ void Learner::execute() {
 		else if (tokens[0] == "genparam") {
 			//学習前の初期パラメータを生成する
 			//genparam 出力先フォルダ
-
+			Evaluator::genFirstEvalFile(usiin.substr(9));
 		}
 		else if (tokens[0] == "rlearn") {
 			//強化学習で勾配ベクトルを求める
 			//rlearn sfen startpos moves ... 
-			const auto winner = getWinner(tokens);
-			dw += learner.reinforcement_learn(tokens, winner, true);
-			dw += learner.reinforcement_learn(tokens, winner, false);
+			dw += learner.reinforcement_learn(tokens, true);
+			dw += learner.reinforcement_learn(tokens, false);
 			dw.clamp(1000);
 			LearnVec::EvalClamp(30000);
 			dw.updateEval();
@@ -47,6 +46,11 @@ void Learner::execute() {
 			//crl 棋譜.sfen
 			learner.consecutive_rl(usiin.substr(4));
 		}
+		else if (tokens[0] == "selfplaylearn") {
+			//自己対局を行い、その棋譜データで学習を行うことを繰り返す
+			//selfplaylearn 回数
+			learner.selfplay_learn(tokens);
+		}
 		else if (tokens[0] == "quit") {
 			break;
 		}
@@ -59,11 +63,15 @@ void Learner::init(const std::vector<std::string>& cmdtokens) {
 }
 
 void Learner::search(SearchTree& tree) {
+	search(tree, searchtime);
+}
+
+void Learner::search(SearchTree& tree, const std::chrono::milliseconds time) {
 	std::vector<std::unique_ptr<SearchAgent>> agents;
 	for (int i = 0; i < agentnum; i++) {
 		agents.push_back(std::unique_ptr<SearchAgent>(new SearchAgent(tree, T_search, i)));
 	}
-	std::this_thread::sleep_for(searchtime);
+	std::this_thread::sleep_for(time);
 	for (auto& ag : agents) {
 		ag->stop();
 	}
@@ -89,12 +97,16 @@ int Learner::getWinner(std::vector<std::string>& sfen) {
 	else return 0;
 }
 
-LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens,const int winner,const bool learnteban) {
-	auto sfen = cmdtokens;
-	sfen[0] = "position";
-	const Kyokumen startKyokumen(sfen);
+LearnVec Learner::reinforcement_learn(std::vector<std::string> cmdtokens, const bool learnteban) {
+	const auto winner = getWinner(cmdtokens);
+	cmdtokens[0] = "position";
+	const Kyokumen startKyokumen(cmdtokens);
+	const auto kifu = Move::usiToMoves(cmdtokens);
+	return reinforcement_learn(startKyokumen, kifu, winner, learnteban);
+}
+
+LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::vector<Move>& kifu, const int winner, const bool learnteban) {
 	double Pwin_result = (1.0 + winner) / 2.0;
-	const auto kifu = Move::usiToMoves(sfen);
 	std::vector<Move> history;
 	if (!learnteban)history.push_back(kifu[0]);
 	int kifuLength = kifu.size();
@@ -171,13 +183,49 @@ void Learner::consecutive_rl(const std::string& sfenfile) {
 		line = "rlearn " + line;
 		auto tokens = usi::split(line, ' ');
 		if (tokens.size() < 3)continue;
-		const auto winner = getWinner(tokens);
-		dw += reinforcement_learn(tokens, winner, true);
-		dw += reinforcement_learn(tokens, winner, false);
+		dw += reinforcement_learn(tokens, true);
+		dw += reinforcement_learn(tokens, false);
 		dw.clamp(1000);
 		LearnVec::EvalClamp(30000);
 		dw.updateEval();
 	}
 	Evaluator::save();
 	std::cout << "learning finished." << std::endl;
+}
+
+void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+
+	const int playnum = std::stoi(comdtokens[1]);
+	LearnVec dw;
+	for (int pl = 0; pl < playnum; pl++) {
+		std::cout << "self-play learning: " << pl << "\n";
+		std::vector<Move> history;
+		const Kyokumen startpos;
+		int winner = 0;
+		{
+			SearchTree tree;
+			tree.makeNewTree(startpos, {});
+			while (true) {
+				search(tree, searchtime * 2);
+				const auto root = tree.getRoot();
+				if (root->eval >= SearchNode::getMateScoreBound()) {
+					winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+					history.push_back(LearnUtil::choiceBestChild(root)->move);
+					break;
+				}
+				else if (root->eval <= -SearchNode::getMateScoreBound()) {
+					winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+					break;
+				}
+				const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+				tree.proceed(next);
+				history.push_back(next->move);
+			}
+		}
+		reinforcement_learn(startpos, history, winner, true);
+		reinforcement_learn(startpos, history, winner, false);
+	}
+	Evaluator::save();
 }

@@ -33,6 +33,21 @@ SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const dou
 	return evals.front().second;
 }
 
+SearchNode* LearnUtil::choiceBestChild(const SearchNode* const root) {
+	double min = std::numeric_limits<double>::max();
+	SearchNode* best = nullptr;
+	for (const auto& child : root->children) {
+		if (child->isSearchable()) {
+			double eval = child->getEs();
+			if (eval < min) {
+				min = eval;
+				best = child;
+			}
+		}
+	}
+	return best;
+}
+
 double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, double beta, SearchPlayer& bestplayer) {
 	const auto eval = Evaluator::evaluate(player);
 	if (depth <= 0) {

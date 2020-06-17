@@ -9,12 +9,16 @@ public:
 private:
 	void init(const std::vector<std::string>& cmdtokens);
 	void search(SearchTree& tree);
+	void search(SearchTree& tree, const std::chrono::milliseconds time);
 	static int getWinner(std::vector<std::string>& sfen);
-	LearnVec reinforcement_learn(const std::vector<std::string>& cmdtokens,const int winner,const bool learnteban);
+	LearnVec reinforcement_learn(const Kyokumen startpos, const std::vector<Move>& kifu, const int winner, const bool learnteban);
+	LearnVec reinforcement_learn(std::vector<std::string> cmdtokens,const bool learnteban);
 	void consecutive_rl(const std::string& sfenfile);
+	void selfplay_learn(const std::vector<std::string>& comdtokens);
 
 	double T_search = 120;
-	std::chrono::milliseconds searchtime{ 1000 };
+	double T_selfplay = 100;
+	std::chrono::milliseconds searchtime{ 500 };
 	int agentnum = 8;
 
 	double child_pi_limit = 0.00005;
