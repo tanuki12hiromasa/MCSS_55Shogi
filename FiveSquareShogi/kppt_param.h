@@ -5,7 +5,7 @@ namespace kppt {
 	constexpr int SquareNum = 25;
 	inline constexpr int inverse(int pos) { return SquareNum - 1 - pos; }
 
-	constexpr int FVScale = 32;
+	constexpr int FVScale = 10;
 	constexpr int ScoreZero = 0;
 	constexpr int PawnScore = (100 * 9 / 10);
 	constexpr int SilverScore = (550 * 9 / 10);

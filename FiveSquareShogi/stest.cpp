@@ -31,7 +31,8 @@ void ShogiTest::test() {
 	{
 		auto sfen = usi::split("rlearn startpos moves 4e4d 4a2c 5d5c 3a4b 2e3d 2a3b 3d2e 4b5c 3e3d 5c4d 5e4d P*4c 4d3e 5a5e+ resign", ' ');
 		Learner learner;
-		auto vec = learner.reinforcement_learn(sfen);
+		const auto winner = Learner::getWinner(sfen);
+		auto vec = learner.reinforcement_learn(sfen, winner, true);
 		vec.showLearnVec_kkpt(1.0);
 		vec.showLearnVec_kppt(1.0);
 	}

@@ -16,6 +16,9 @@ namespace kppt {
 
 	class kppt_paramVector {
 	public:
+		static void EvalClamp(std::int16_t absmax);
+
+	public:
 		kppt_paramVector();
 		kppt_paramVector(kppt_paramVector&&)noexcept;
 		kppt_paramVector& operator=(kppt_paramVector&&)noexcept;
@@ -24,7 +27,8 @@ namespace kppt {
 		kppt_evaluator& operator=(const kppt_paramVector&) = delete;
 
 		void reset();
-		void addGrad(float scalar,const SearchPlayer&,bool rootTeban);
+		void addGrad(const float scalar,const SearchPlayer&,bool rootTeban);
+		void clamp(float absmax);
 
 		void updateEval()const;
 	private:

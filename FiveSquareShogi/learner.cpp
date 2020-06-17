@@ -5,6 +5,7 @@
 
 void Learner::execute() {
 	Learner learner;
+	LearnVec dw;
 	while (true) {
 		std::string usiin;
 		std::getline(std::cin, usiin);
@@ -26,8 +27,12 @@ void Learner::execute() {
 		else if (tokens[0] == "rlearn") {
 			//強化学習で勾配ベクトルを求める
 			//rlearn sfen startpos moves ... 
-			const auto grad = learner.reinforcement_learn(tokens);
-			grad.updateEval();
+			const auto winner = getWinner(tokens);
+			dw += learner.reinforcement_learn(tokens, winner, true);
+			dw += learner.reinforcement_learn(tokens, winner, false);
+			dw.clamp(1000);
+			LearnVec::EvalClamp(30000);
+			dw.updateEval();
 			std::cout << "rlearn done." << std::endl;
 		}
 		else if (tokens[0] == "saveparam") {
@@ -69,7 +74,7 @@ void Learner::search(SearchTree& tree) {
 }
 
 //どちらが勝ったかを返す関数 1:先手勝ち -1:後手勝ち 0:引き分け
-double getWinner(std::vector<std::string>& sfen) {
+int Learner::getWinner(std::vector<std::string>& sfen) {
 	int startnum = 0;
 	for (int t = 0; t < sfen.size(); t++) {
 		if (sfen[t] == "moves") {
@@ -79,18 +84,19 @@ double getWinner(std::vector<std::string>& sfen) {
 	}
 	if (sfen.back() == "resign") {
 		sfen.pop_back();
-		return ((sfen.size() - startnum) % 2 != 0) ? 1 : 0;
+		return ((sfen.size() - startnum) % 2 != 0) ? 1 : -1;
 	}
-	else return 0.5;
+	else return 0;
 }
 
-LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens) {
+LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens,const int winner,const bool learnteban) {
 	auto sfen = cmdtokens;
 	sfen[0] = "position";
 	const Kyokumen startKyokumen(sfen);
-	double Pwin_result = getWinner(sfen);
+	double Pwin_result = (1.0 + winner) / 2.0;
 	const auto kifu = Move::usiToMoves(sfen);
 	std::vector<Move> history;
+	if (!learnteban)history.push_back(kifu[0]);
 	int kifuLength = kifu.size();
 	std::cout << "L=" << kifuLength << std::endl;
 	const double Tb = SearchNode::getTeval();
@@ -102,12 +108,12 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	double Pwin_prev = 0.5f;
 	std::cout << "reinforcement learning " << std::endl;
 	search(tree);
-	for (int t = 0; t < kifuLength - 1; t++) {
+	for (int t = (learnteban) ? 0 : 1; t < kifuLength - 1; t = t + 2) {
 		const auto root = tree.getRoot();
 		double Pwin = LearnUtil::EvalToProb(root->eval);
 		//TD-清算
-		if (t > 0) {
-			dw += learning_rate_td * (td_gamma * (1 - Pwin) - Pwin_prev) * td_e;
+		if (t > 1) {
+			dw += learning_rate_td * (td_gamma * Pwin - Pwin_prev) * td_e;
 		}
 		LearnVec rootVec;
 		double Emin = std::numeric_limits<double>::max();
@@ -140,6 +146,7 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 		Pwin_prev = Pwin;
 		//proceed
 		history.push_back(kifu[t]);
+		history.push_back(kifu[t + 1]);
 		tree.clear();
 		tree.makeNewTree(startKyokumen, history);
 		std::cout << "t=" << t << std::endl;
@@ -147,7 +154,7 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 	}
 	//TD-清算
 	double Pwin = LearnUtil::EvalToProb(tree.getRoot()->eval);
-	dw += learning_rate_td * ((Pwin_result * 2 - 1) + td_gamma * (1 - Pwin) - Pwin_prev) * td_e;
+	dw += learning_rate_td * ((learnteban ? winner : -winner) + td_gamma * Pwin - Pwin_prev) * td_e;
 	//ノード消去
 	tree.clear();
 	std::cout << "reinforcement learning finished." << std::endl;
@@ -156,14 +163,19 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 
 void Learner::consecutive_rl(const std::string& sfenfile) {
 	std::ifstream ifs(sfenfile);
+	LearnVec dw;
 	while (!ifs.eof()) {
 		std::string line;
 		std::getline(ifs, line);
 		std::cout << line << std::endl;
 		line = "rlearn " + line;
-		const auto tokens = usi::split(line, ' ');
+		auto tokens = usi::split(line, ' ');
 		if (tokens.size() < 3)continue;
-		const auto dw = reinforcement_learn(tokens);
+		const auto winner = getWinner(tokens);
+		dw += reinforcement_learn(tokens, winner, true);
+		dw += reinforcement_learn(tokens, winner, false);
+		dw.clamp(1000);
+		LearnVec::EvalClamp(30000);
 		dw.updateEval();
 	}
 	Evaluator::save();
