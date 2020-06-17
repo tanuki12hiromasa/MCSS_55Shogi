@@ -120,8 +120,8 @@ LearnVec Learner::reinforcement_learn(const std::vector<std::string>& cmdtokens)
 			double pi = std::exp(-(child->eval - Emin) / Tb) / Z;
 			if (pi < child_pi_limit) continue;
 			const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * 1000 + 1);
-			const double Pwin_child = LearnUtil::EvalToProb(child->eval);
-			rootVec += pi * ((Pwin - Pwin_child) / LearnUtil::pTb + 1) * childVec;
+			const double Pwin_child = 1 - LearnUtil::EvalToProb(child->eval);
+			rootVec += pi * -((Pwin_child - Pwin) / LearnUtil::pTb + 1) * childVec;
 			//bts-pp
 			dw += learning_rate_pp * (LearnUtil::EvalToProb(child->getOriginEval()) - Pwin_child) * childVec;
 			//pg-leaf

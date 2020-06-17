@@ -19,11 +19,11 @@ private:
 	double child_pi_limit = 0.00005;
 	double samplingrate = 0.1;
 
-	double learning_rate_td = 0.01;
-	double learning_rate_pp = 0.01;
-	double learning_rate_bts = 0.01;
-	double learning_rate_reg = 0.01;
-	double learning_rate_pge = 0.01;
+	double learning_rate_td = 0.1;
+	double learning_rate_pp = 0.1;
+	double learning_rate_bts = 0.1;
+	double learning_rate_reg = 0.1;
+	double learning_rate_pge = 0.1;
 
 	double td_gamma = 0.9;
 	double td_lambda = 0.8;
