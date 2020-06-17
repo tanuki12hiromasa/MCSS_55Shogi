@@ -96,6 +96,12 @@
     <ClCompile Include="learn_util.cpp">
       <Filter>ソース ファイル\learn</Filter>
     </ClCompile>
+    <ClCompile Include="kppt_learn.cpp">
+      <Filter>kppt</Filter>
+    </ClCompile>
+    <ClCompile Include="learner.cpp">
+      <Filter>ソース ファイル\learn</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
@@ -168,6 +174,12 @@
       <Filter>debug</Filter>
     </ClInclude>
     <ClInclude Include="learn_util.h">
+      <Filter>ヘッダー ファイル\learn</Filter>
+    </ClInclude>
+    <ClInclude Include="kppt_learn.h">
+      <Filter>kppt</Filter>
+    </ClInclude>
+    <ClInclude Include="learner.h">
       <Filter>ヘッダー ファイル\learn</Filter>
     </ClInclude>
   </ItemGroup>

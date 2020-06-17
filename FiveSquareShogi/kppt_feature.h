@@ -84,5 +84,7 @@ namespace kppt {
 			return !operator==(rhs);
 		}
 		std::string toString()const;
+
+		friend class kppt_learn;
 	};
 }

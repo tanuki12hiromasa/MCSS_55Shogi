@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "agent.h"
 #include "time_property.h"
 #include <mutex>
