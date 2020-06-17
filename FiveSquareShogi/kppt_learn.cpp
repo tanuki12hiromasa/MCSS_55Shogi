@@ -1,4 +1,5 @@
 ﻿#include "kppt_learn.h"
+#include <iostream>
 
 namespace kppt {
 	kppt_paramVector::kppt_paramVector() {
@@ -47,6 +48,7 @@ namespace kppt {
 		const unsigned skpos = player.kyokumen.sOuPos();
 		const unsigned gkpos = player.kyokumen.gOuPos();
 		const unsigned invgkpos = inverse(gkpos);
+		const unsigned invskpos = inverse(skpos);
 		const float bammenscalar = (player.kyokumen.teban()) ? scalar : -scalar;
 		const float tebanscalar = (player.kyokumen.teban() == rootTeban) ? scalar : -scalar;
 		for (unsigned i = 0; i < EvalList::EvalListSize; ++i) {
@@ -114,5 +116,34 @@ namespace kppt {
 			KKP[i] *= c;
 		}
 		return *this;
+	}
+
+	void kppt_paramVector::showLearnVec_kppt(const double displaymin)const {
+		using namespace std;
+		for (int i = 0; i < kppt::SquareNum; i++) {
+			for (int j = 0; j < kppt::fe_end; j++) {
+				for (int k = 0; k < j; k++) {
+					if (j == k)continue;
+					if (std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 0)]) > displaymin || std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 1)]) > displaymin) {
+						cout << "kpp " << i << " " << j << " " << k << ": ";
+						cout << KPP[kppt::kpptToLkpptnum(i, j, k, 0)] << " " << KPP[kppt::kpptToLkpptnum(i, j, k, 1)] << "\n";
+					}
+				}
+			}
+		}
+	}
+
+	void kppt_paramVector::showLearnVec_kkpt(const double displaymin)const {
+		using namespace std;
+		for (int i = 0; i < kppt::SquareNum; i++) {
+			for (int j = 0; j < i; j++) {
+				for (int k = 0; k < kppt::fe_end; k++) {
+					if (std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 0)]) > displaymin || std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 1)]) > displaymin) {
+						cout << "kkp " << i << " " << j << " " << k << ": ";
+						cout << KKP[kppt::kkptToLkkptnum(i, j, k, 0)] << " " << KKP[kppt::kkptToLkkptnum(i, j, k, 1)] << "\n";
+					}
+				}
+			}
+		}
 	}
 }

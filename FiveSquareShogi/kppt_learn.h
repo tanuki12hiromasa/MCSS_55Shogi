@@ -39,8 +39,12 @@ namespace kppt {
 		kppt_paramVector& operator+=(const fvpair& rhs);
 		kppt_paramVector& operator*=(const double c);
 
+		void showLearnVec_kppt(double displaymin)const;
+		void showLearnVec_kkpt(double displaymin)const;
+	
 		friend class kppt_learn;
 		friend class ShogiTest;
 	};
 	inline kppt_paramVector::fvpair operator*(const float lhs, const kppt_paramVector& rhs) { return kppt_paramVector::fvpair(lhs,rhs); }
+
 }

@@ -104,14 +104,14 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 			node = choiceChildRandom(node, T, random(engine));
 			player.proceed(node->move);
 			const double Peval = EvalToProb(node->eval);
-			c *= (Peval + Peval_prev) / pTb - 1;
+			c *= (Peval - Peval_prev) / pTb + 1;
 			Peval_prev = Peval;
 		}
-		const double Peval = EvalToProb(node->eval);
-		c *= probT * Peval * (1 - Peval);
+		//const double Peval = EvalToProb(node->eval);
+		//c *= probT * Peval * (1 - Peval);
 		vec.addGrad(c, getQSBest(node, player, 8), teban);
 	}
-	vec *= 1.0 / samplingnum;
+	vec *= (1.0 / samplingnum);
 	return vec;
 }
 

@@ -27,4 +27,6 @@ private:
 
 	double td_gamma = 0.9;
 	double td_lambda = 0.8;
+
+	friend class ShogiTest;
 };
