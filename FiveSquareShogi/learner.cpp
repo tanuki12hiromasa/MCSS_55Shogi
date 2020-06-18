@@ -136,25 +136,30 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 			dw += learning_rate_td * (td_gamma * Pwin - Pwin_prev) * td_e;
 		}
 		LearnVec rootVec;
-		double Emin = std::numeric_limits<double>::max();
-		for (const auto child : root->children) if (child->eval < Emin) Emin = child->eval;
-		double Z = 0;
-		for (const auto child : root->children)	Z += std::exp(-(child->eval - Emin) / Tb);
-		for (const auto child : root->children) {
-			SearchPlayer player = tree.getRootPlayer();
-			player.proceed(child->move);
-			double pi = std::exp(-(child->eval - Emin) / Tb) / Z;
-			if (pi < child_pi_limit) continue;
-			const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * 1000 + 1);
-			const double Pwin_child = 1 - LearnUtil::EvalToProb(child->eval);
-			rootVec += pi * -((Pwin_child - Pwin) / LearnUtil::pTb + 1) * childVec;
-			//bts-pp
-			dw += learning_rate_pp * (LearnUtil::EvalToProb(child->getOriginEval()) - Pwin_child) * childVec;
-			//pg-leaf
-			if (child->move == kifu[t + 1]) {
-				dw += -learning_rate_pge * childVec;
+		if (root->children.empty()) {
+			rootVec.addGrad(1, tree.getRootPlayer(), true);
+		}
+		else {
+			double Emin = std::numeric_limits<double>::max();
+			for (const auto child : root->children) if (child->eval < Emin) Emin = child->eval;
+			double Z = 0;
+			for (const auto child : root->children)	Z += std::exp(-(child->eval - Emin) / Tb);
+			for (const auto child : root->children) {
+				SearchPlayer player = tree.getRootPlayer();
+				player.proceed(child->move);
+				double pi = std::exp(-(child->eval - Emin) / Tb) / Z;
+				if (pi < child_pi_limit) continue;
+				const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * 1000 + 1);
+				const double Pwin_child = 1 - LearnUtil::EvalToProb(child->eval);
+				rootVec += pi * -((Pwin_child - Pwin) / LearnUtil::pTb + 1) * childVec;
+				//bts-pp
+				dw += learning_rate_pp * (LearnUtil::EvalToProb(child->getOriginEval()) - Pwin_child) * childVec;
+				//pg-leaf
+				if (child->move == kifu[t + 1]) {
+					dw += -learning_rate_pge * childVec;
+				}
+				dw += learning_rate_pge * pi * childVec;
 			}
-			dw += learning_rate_pge * pi * childVec;
 		}
 		//bts
 		dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
@@ -234,9 +239,14 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 				history.push_back(next->move);
 				std::cout << next->move.toUSI() << " ";
 			}
+			std::cout << "gameend.\n";
 		}
-		reinforcement_learn(startpos, history, winner, true);
-		reinforcement_learn(startpos, history, winner, false);
+		dw += reinforcement_learn(startpos, history, winner, true);
+		dw += reinforcement_learn(startpos, history, winner, false);
+		dw.clamp(1000);
+		LearnVec::EvalClamp(30000);
+		dw.updateEval();
+		Evaluator::save();
 	}
-	Evaluator::save();
+	std::cout << "self-play learning finished" << std::endl;
 }

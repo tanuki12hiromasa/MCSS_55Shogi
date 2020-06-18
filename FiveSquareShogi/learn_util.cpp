@@ -61,7 +61,6 @@ double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, dou
 	}
 	auto moves = MoveGenerator::genCapMove(pmove, player.kyokumen);
 	if (moves.empty() || pmove.isOute()) {
-		bestplayer = player;
 		return eval;
 	}
 	for (auto& m : moves) {
@@ -109,6 +108,12 @@ SearchPlayer LearnUtil::getQSBest(const SearchNode* const root, SearchPlayer& pl
 LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum) {
 	const double T = SearchNode::getTeval();
 	LearnVec vec;
+	if (root == nullptr) return vec;
+	if (root->children.empty()) {
+		auto player = rootplayer;
+		vec.addGrad(1, getQSBest(root,player,8), teban);
+		return vec;
+	}
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 	for (unsigned long long i = 0; i < samplingnum; i++) {
@@ -118,7 +123,9 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 		SearchPlayer player = rootplayer;
 		//std::vector<double> pevalhistory = { Peval_prev };//debug
 		while (!node->isLeaf()) {
-			node = choiceChildRandom(node, T, random(engine));
+			auto next = choiceChildRandom(node, T, random(engine));
+			if (next == nullptr)break;
+			node = next;
 			player.proceed(node->move);
 			const double Peval = (teban == player.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
 			c *= -((Peval - Peval_prev) / pTb + 1);
