@@ -35,8 +35,8 @@ void ShogiTest::test() {
 		vec.showLearnVec_kkpt(1.0);
 		vec.showLearnVec_kppt(1.0);
 		vec.updateEval();
-		vec.showLearnVec_kkpt(0);
-		vec.showLearnVec_kppt(0);
+		vec.showLearnVec_kkpt(0.6);
+		vec.showLearnVec_kppt(0.6);
 	}
 # endif
 #if 0

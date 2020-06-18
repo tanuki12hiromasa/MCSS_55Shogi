@@ -67,11 +67,17 @@ void Learner::search(SearchTree& tree) {
 }
 
 void Learner::search(SearchTree& tree, const std::chrono::milliseconds time) {
+	using namespace std::chrono_literals;
+	constexpr auto checkflame = 50ms;
 	std::vector<std::unique_ptr<SearchAgent>> agents;
 	for (int i = 0; i < agentnum; i++) {
 		agents.push_back(std::unique_ptr<SearchAgent>(new SearchAgent(tree, T_search, i)));
 	}
-	std::this_thread::sleep_for(time);
+	const auto starttime = std::chrono::system_clock::now();
+	const SearchNode* const root = tree.getRoot();
+	while (std::abs(root->eval) < SearchNode::getMateScoreBound() && std::chrono::system_clock::now() - starttime < time) {
+		std::this_thread::sleep_for(checkflame);
+	}
 	for (auto& ag : agents) {
 		ag->stop();
 	}
@@ -110,7 +116,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 	std::vector<Move> history;
 	if (!learnteban)history.push_back(kifu[0]);
 	int kifuLength = kifu.size();
-	std::cout << "L=" << kifuLength << std::endl;
+	std::cout << "L=" << (kifuLength - 1) << std::endl;
 	const double Tb = SearchNode::getTeval();
 	//tree初期化
 	SearchTree tree;
@@ -119,7 +125,9 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 	LearnVec td_e;
 	double Pwin_prev = 0.5f;
 	std::cout << "reinforcement learning " << std::endl;
+	std::cout << "t=" << ((learnteban) ? 0 : 1) << ":";
 	search(tree);
+	std::cout << " searched.";
 	for (int t = (learnteban) ? 0 : 1; t < kifuLength - 1; t = t + 2) {
 		const auto root = tree.getRoot();
 		double Pwin = LearnUtil::EvalToProb(root->eval);
@@ -152,6 +160,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
 		//reg
 		dw += learning_rate_reg * (Pwin_result - Pwin) / LearnUtil::probT * (1 - Pwin) * Pwin * rootVec;
+		std::cout << " calculated." << std::endl;
 		//TD-準備
 		td_e *= td_gamma * td_lambda;
 		td_e += rootVec;
@@ -161,8 +170,9 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		history.push_back(kifu[t + 1]);
 		tree.clear();
 		tree.makeNewTree(startKyokumen, history);
-		std::cout << "t=" << t << std::endl;
+		std::cout << "t=" << (t+1)<<":";
 		search(tree);
+		std::cout << " searched.";
 	}
 	//TD-清算
 	double Pwin = LearnUtil::EvalToProb(tree.getRoot()->eval);
@@ -222,6 +232,7 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 				const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
 				tree.proceed(next);
 				history.push_back(next->move);
+				std::cout << next->move.toUSI() << " ";
 			}
 		}
 		reinforcement_learn(startpos, history, winner, true);

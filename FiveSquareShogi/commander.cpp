@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "commander.h"
 #include "learn_util.h"
 #include "usi.h" 
@@ -103,7 +103,7 @@ Commander::~Commander() {
 
 void Commander::coutOption() {
 	using namespace std;
-	cout << "option name eval_folderpath type string default ./data/kppt_apery" << endl;
+	cout << "option name eval_folderpath type string default ./data/kppt" << endl;
 	cout << "option name leave_branchNode type check default false" << endl;
 	cout << "option name continuous_tree type check default true" << endl;
 	cout << "option name NumOfAgent type spin default 12 min 1 max 128" << endl;
@@ -140,7 +140,7 @@ void Commander::setOption(const std::vector<std::string>& token) {
 		else if (token[2] == "continuous_tree") {
 			continuousTree = (token[4] == "true");
 		}
-		else if (token[2] == "kppt_filepath") {
+		else if (token[2] == "eval_folderpath") {
 			//aperyのパラメータファイルの位置を指定する 空白文字がパスにあると駄目なのを何とかしたい?
 			Evaluator::setpath_input(token[4]);
 		}
