@@ -223,7 +223,7 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 			SearchTree tree;
 			tree.makeNewTree(startpos, {});
 			while (true) {
-				search(tree, searchtime * 2);
+				search(tree, searchtime);
 				const auto root = tree.getRoot();
 				if (root->eval >= SearchNode::getMateScoreBound()) {
 					winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
