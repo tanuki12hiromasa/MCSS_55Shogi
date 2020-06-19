@@ -237,9 +237,9 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 				const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
 				tree.proceed(next);
 				history.push_back(next->move);
-				std::cout << next->move.toUSI() << " ";
+				std::cout << next->move.toUSI() << std::endl;
 			}
-			std::cout << "gameend.\n";
+			std::cout << "gameend."<< std::endl;
 		}
 		dw += reinforcement_learn(startpos, history, winner, true);
 		dw += reinforcement_learn(startpos, history, winner, false);
