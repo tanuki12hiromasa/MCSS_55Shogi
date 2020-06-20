@@ -112,7 +112,7 @@ LearnVec Learner::reinforcement_learn(std::vector<std::string> cmdtokens, const 
 }
 
 LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::vector<Move>& kifu, const int winner, const bool learnteban) {
-	double Pwin_result = (1.0 + winner) / 2.0;
+	double Pwin_result = (learnteban) ? ((1.0 + winner) / 2.0) : ((1.0 - winner) / 2.0);
 	std::vector<Move> history;
 	if (!learnteban)history.push_back(kifu[0]);
 	int kifuLength = kifu.size();
@@ -141,24 +141,33 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		}
 		else {
 			double Emin = std::numeric_limits<double>::max();
-			for (const auto child : root->children) if (child->eval < Emin) Emin = child->eval;
+			double Hmin = std::numeric_limits<double>::max();
+			for (const auto child : root->children) { 
+				if (child->eval < Emin) Emin = child->eval; 
+				if (child->getOriginEval() < Hmin) Hmin = child->getOriginEval();
+			}
 			double Z = 0;
-			for (const auto child : root->children)	Z += std::exp(-(child->eval - Emin) / Tb);
+			double Z_H = 0;
+			for (const auto child : root->children) {
+				Z += std::exp(-(child->eval - Emin) / Tb);
+				Z_H += std::exp(-(child->getOriginEval() - Hmin) / Tb);
+			}
 			for (const auto child : root->children) {
 				SearchPlayer player = tree.getRootPlayer();
 				player.proceed(child->move);
 				double pi = std::exp(-(child->eval - Emin) / Tb) / Z;
 				if (pi < child_pi_limit) continue;
+				double pi_h = std::exp(-(child->getOriginEval() - Hmin) / Tb) / Z_H;
 				const auto childVec = LearnUtil::getGrad(child, player, tree.getRootPlayer().kyokumen.teban(), pi * 1000 + 1);
 				const double Pwin_child = 1 - LearnUtil::EvalToProb(child->eval);
 				rootVec += pi * -((Pwin_child - Pwin) / LearnUtil::pTb + 1) * childVec;
 				//bts-pp
-				dw += learning_rate_pp * (LearnUtil::EvalToProb(child->getOriginEval()) - Pwin_child) * childVec;
+				dw += -learning_rate_pp * (pi - pi_h) / Tb * childVec;
 				//pg-leaf
 				if (child->move == kifu[t + 1]) {
-					dw += -learning_rate_pge * childVec;
+					dw += -learning_rate_pge / LearnUtil::pTb * childVec;
 				}
-				dw += learning_rate_pge * pi * childVec;
+				dw += learning_rate_pge * pi / LearnUtil::pTb * childVec;
 			}
 		}
 		//bts
