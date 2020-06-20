@@ -13,6 +13,16 @@ void Learner::execute() {
 		if (tokens.empty()) {
 			std::cout << "command ready" << std::endl;
 		}
+		else if (tokens[0] == "setoption") {
+			if (tokens[1] == "evalinput") {
+				Evaluator::setpath_input(tokens[2]);
+				std::cout << "set evalinput" << std::endl;
+			}
+			else if (tokens[1] == "evaloutput") {
+				Evaluator::setpath_output(tokens[2]);
+				std::cout << "set evaloutput" << std::endl;
+			}
+		}
 		else if (tokens[0] == "init") {
 			//設定ファイルを読み込む
 			//init 設定ファイル.txt
@@ -132,7 +142,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		const auto root = tree.getRoot();
 		double Pwin = LearnUtil::EvalToProb(root->eval);
 		//TD-清算
-		if (t > 1) {
+		if (t > 1 && learning_rate_td > 0) {
 			dw += learning_rate_td * (td_gamma * Pwin - Pwin_prev) * td_e;
 		}
 		LearnVec rootVec;
@@ -162,23 +172,33 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 				const double Pwin_child = 1 - LearnUtil::EvalToProb(child->eval);
 				rootVec += pi * -((Pwin_child - Pwin) / LearnUtil::pTb + 1) * childVec;
 				//bts-pp
-				dw += -learning_rate_pp * (pi - pi_h) / Tb * childVec;
-				//pg-leaf
-				if (child->move == kifu[t + 1]) {
-					dw += -learning_rate_pge / LearnUtil::pTb * childVec;
+				if (learning_rate_pp > 0) {
+					dw += -learning_rate_pp * (pi - pi_h) / LearnUtil::pTb * childVec;
 				}
-				dw += learning_rate_pge * pi / LearnUtil::pTb * childVec;
+				//pg-leaf
+				if (learning_rate_pge > 0) {
+					if (child->move == kifu[t + 1]) {
+						dw += -learning_rate_pge / LearnUtil::pTb * childVec;
+					}
+					dw += learning_rate_pge * pi / LearnUtil::pTb * childVec;
+				}
 			}
 		}
 		//bts
-		dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+		if (learning_rate_bts > 0) {
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+		}
 		//reg
-		dw += learning_rate_reg * (Pwin_result - Pwin) / LearnUtil::probT * (1 - Pwin) * Pwin * rootVec;
+		if (learning_rate_reg > 0) {
+			dw += learning_rate_reg * (Pwin_result - Pwin) / LearnUtil::probT * (1 - Pwin) * Pwin * rootVec;
+		}
 		std::cout << " calculated." << std::endl;
 		//TD-準備
-		td_e *= td_gamma * td_lambda;
-		td_e += rootVec;
-		Pwin_prev = Pwin;
+		if (learning_rate_td > 0) {
+			td_e *= td_gamma * td_lambda;
+			td_e += rootVec;
+			Pwin_prev = Pwin;
+		}
 		//proceed
 		history.push_back(kifu[t]);
 		history.push_back(kifu[t + 1]);
@@ -189,8 +209,10 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		std::cout << " searched.";
 	}
 	//TD-清算
-	double Pwin = LearnUtil::EvalToProb(tree.getRoot()->eval);
-	dw += learning_rate_td * ((learnteban ? winner : -winner) + td_gamma * Pwin - Pwin_prev) * td_e;
+	if (learning_rate_td > 0) {
+		double Pwin = LearnUtil::EvalToProb(tree.getRoot()->eval);
+		dw += learning_rate_td * ((learnteban ? winner : -winner) + td_gamma * Pwin - Pwin_prev) * td_e;
+	}
 	//ノード消去
 	tree.clear();
 	std::cout << "reinforcement learning finished." << std::endl;
@@ -200,6 +222,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 void Learner::consecutive_rl(const std::string& sfenfile) {
 	std::ifstream ifs(sfenfile);
 	LearnVec dw;
+	size_t count = 0;
 	while (!ifs.eof()) {
 		std::string line;
 		std::getline(ifs, line);
@@ -207,13 +230,15 @@ void Learner::consecutive_rl(const std::string& sfenfile) {
 		line = "rlearn " + line;
 		auto tokens = usi::split(line, ' ');
 		if (tokens.size() < 3)continue;
+		std::cout << "line:" << count << std::endl;
 		dw += reinforcement_learn(tokens, true);
 		dw += reinforcement_learn(tokens, false);
 		dw.clamp(1000);
 		LearnVec::EvalClamp(30000);
 		dw.updateEval();
+		Evaluator::save();
+		count++;
 	}
-	Evaluator::save();
 	std::cout << "learning finished." << std::endl;
 }
 

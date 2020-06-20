@@ -80,6 +80,7 @@ namespace kppt {
 				fs.read(it, size);
 			}
 		}
+		std::cout << "Parameters have been read from "<< folderpath << std::endl;
 	}
 
 	void kppt_feat::save(const std::string& folderpath) {
@@ -107,6 +108,7 @@ namespace kppt {
 				fs.write(it, size);
 			}
 		}
+		std::cout << "Parameters have been written to " << folderpath << std::endl;
 	}
 
 	EvalSum kppt_feat::EvalFull(const Kyokumen& kyokumen, const EvalList& elist) {
