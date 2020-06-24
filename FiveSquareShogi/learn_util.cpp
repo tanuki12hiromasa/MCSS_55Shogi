@@ -8,12 +8,10 @@ SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const dou
 	double CE = std::numeric_limits<double>::max();
 	std::vector<dn> evals; evals.reserve(root->children.size());
 	for (const auto& child : root->children) {
-		if (child->isSearchable()) {
-			double eval = child->getEs();
-			evals.push_back(std::make_pair(eval, child));
-			if (eval < CE) {
-				CE = eval;
-			}
+		double eval = child->getEs();
+		evals.push_back(std::make_pair(eval, child));
+		if (eval < CE) {
+			CE = eval;
 		}
 	}
 	if (evals.empty()) {
@@ -37,12 +35,10 @@ SearchNode* LearnUtil::choiceBestChild(const SearchNode* const root) {
 	double min = std::numeric_limits<double>::max();
 	SearchNode* best = nullptr;
 	for (const auto& child : root->children) {
-		if (child->isSearchable()) {
-			double eval = child->getEs();
-			if (eval < min) {
-				min = eval;
-				best = child;
-			}
+		double eval = child->getEs();
+		if (eval < min) {
+			min = eval;
+			best = child;
 		}
 	}
 	return best;
