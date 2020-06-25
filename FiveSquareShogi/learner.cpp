@@ -219,6 +219,87 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 	return dw;
 }
 
+LearnVec Learner::simple_bootstrap(const Kyokumen startKyokumen, const std::vector<Move>& kifu, const int winner, const bool learnteban) {
+	std::vector<Move> history;
+	if (!learnteban)history.push_back(kifu[0]);
+	int kifuLength = kifu.size();
+	std::cout << "L=" << (kifuLength - 1) << std::endl;
+	const double Tb = SearchNode::getTeval();
+	//tree初期化
+	SearchTree tree;
+	tree.makeNewTree(startKyokumen, {});
+	LearnVec dw;
+	std::cout << "reinforcement learning " << std::endl;
+	std::cout << "t=" << ((learnteban) ? 0 : 1) << ":";
+	search(tree);
+	std::cout << " searched.";
+	for (int t = (learnteban) ? 0 : 1; t < kifuLength - 1; t = t + 2) {
+		const auto root = tree.getRoot();
+		double Pwin = LearnUtil::EvalToProb(root->eval);
+		LearnVec rootVec;
+		rootVec.addGrad(1, tree.getRootPlayer(), learnteban);
+		//bts
+		if (learning_rate_bts > 0) {
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+		}
+		std::cout << " calculated." << std::endl;
+
+		//proceed
+		history.push_back(kifu[t]);
+		history.push_back(kifu[t + 1]);
+		tree.clear();
+		tree.makeNewTree(startKyokumen, history);
+		std::cout << "t=" << (t + 1) << ":";
+		search(tree);
+		std::cout << " searched.";
+	}
+
+	//ノード消去
+	tree.clear();
+	std::cout << "reinforcement learning finished." << std::endl;
+	return dw;
+}
+
+LearnVec Learner::sampling_bootstrap(const Kyokumen startKyokumen, const std::vector<Move>& kifu, const int winner, const bool learnteban) {
+	std::vector<Move> history;
+	if (!learnteban)history.push_back(kifu[0]);
+	int kifuLength = kifu.size();
+	std::cout << "L=" << (kifuLength - 1) << std::endl;
+	const double Tb = SearchNode::getTeval();
+	//tree初期化
+	SearchTree tree;
+	tree.makeNewTree(startKyokumen, {});
+	LearnVec dw;
+	std::cout << "reinforcement learning " << std::endl;
+	std::cout << "t=" << ((learnteban) ? 0 : 1) << ":";
+	search(tree);
+	std::cout << " searched.";
+	for (int t = (learnteban) ? 0 : 1; t < kifuLength - 1; t = t + 2) {
+		const auto root = tree.getRoot();
+		double Pwin = LearnUtil::EvalToProb(root->eval);
+		LearnVec rootVec = LearnUtil::getGrad(root, tree.getRootPlayer(), learnteban, 1000, 0);
+		//bts
+		if (learning_rate_bts > 0) {
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+		}
+		std::cout << " calculated." << std::endl;
+
+		//proceed
+		history.push_back(kifu[t]);
+		history.push_back(kifu[t + 1]);
+		tree.clear();
+		tree.makeNewTree(startKyokumen, history);
+		std::cout << "t=" << (t + 1) << ":";
+		search(tree);
+		std::cout << " searched.";
+	}
+
+	//ノード消去
+	tree.clear();
+	std::cout << "reinforcement learning finished." << std::endl;
+	return dw;
+}
+
 void Learner::consecutive_rl(const std::string& sfenfile) {
 	std::ifstream ifs(sfenfile);
 	LearnVec dw;
@@ -275,8 +356,10 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 			}
 			std::cout << "gameend."<< std::endl;
 		}
-		dw += reinforcement_learn(startpos, history, winner, true);
-		dw += reinforcement_learn(startpos, history, winner, false);
+		//dw += reinforcement_learn(startpos, history, winner, true);
+		//dw += reinforcement_learn(startpos, history, winner, false);
+		dw += simple_bootstrap(startpos, history, winner, true);
+		dw += simple_bootstrap(startpos, history, winner, false);
 		dw.clamp(1000);
 		LearnVec::EvalClamp(30000);
 		dw.updateEval();

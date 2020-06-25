@@ -13,6 +13,9 @@ private:
 	static int getWinner(std::vector<std::string>& sfen);
 	LearnVec reinforcement_learn(const Kyokumen startpos, const std::vector<Move>& kifu, const int winner, const bool learnteban);
 	LearnVec reinforcement_learn(std::vector<std::string> cmdtokens,const bool learnteban);
+	LearnVec simple_bootstrap(const Kyokumen startpos, const std::vector<Move>& kifu, const int winner, const bool learnteban);
+	LearnVec sampling_bootstrap(const Kyokumen startpos, const std::vector<Move>& kifu, const int winner, const bool learnteban);
+
 	void consecutive_rl(const std::string& sfenfile);
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
 

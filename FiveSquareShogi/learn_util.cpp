@@ -101,14 +101,14 @@ SearchPlayer LearnUtil::getQSBest(const SearchNode* const root, SearchPlayer& pl
 	return bestplayer;
 }
 
-LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum) {
+LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum, const int qsdepth) {
 	const double T = SearchNode::getTeval();
 	LearnVec vec;
 	if (root == nullptr) return vec;
 	if (root->children.empty()) {
 		auto player = rootplayer;
 		double c = 1;
-		const auto qsbest = getQSBest(root, player, 8);
+		const auto qsbest = getQSBest(root, player, qsdepth);
 		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
 		vec.addGrad(c, qsbest, teban);
 		return vec;
@@ -131,7 +131,7 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 		}
 		const double Peval = EvalToProb(node->eval);
 		c *= probT * Peval * (1 - Peval);
-		const auto qsbest = getQSBest(node, player, 8);
+		const auto qsbest = getQSBest(node, player, qsdepth);
 		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
 		vec.addGrad(c, qsbest, teban);
 	}
