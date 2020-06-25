@@ -307,7 +307,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 		int changecounter = 0;
 		int loopcounter = 0;
 		std::cout << "info string time:" << timelimit.first.count() << ", " << timelimit.second.count() << std::endl;
-		std::this_thread::sleep_for(searchtime / 8);
+		std::this_thread::sleep_for(1ms);
 		do {
 			loopcounter++;
 			constexpr auto sleeptime = 50ms;
@@ -327,6 +327,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 				pi_average = pi;
 				continuous_counter = 1;
 			}
+			recentBestNode = bestnode;
 			//即指しの条件を満たしたら指す
 			if (continuous_counter * sleeptime > std::max(timelimit.first / 2, time_quickbm_lower)) {
 				break;
@@ -343,7 +344,6 @@ void Commander::go(const std::vector<std::string>& tokens) {
 			if (std::chrono::system_clock::now() - starttime + sleeptime >= timelimit.second) {
 				break;
 			}
-			recentBestNode = bestnode;
 		} while (std::abs(root->eval) < SearchNode::getMateScoreBound());
 		if (provisonalBestMove == nullptr) provisonalBestMove = recentBestNode;
 #else //学習のために選択方策によりランダムに手を指してほしい時

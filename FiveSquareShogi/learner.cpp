@@ -397,11 +397,13 @@ void Learner::selfplay_simple_bootstrap() {
 				break;
 			}
 
-			LearnVec rootVec;
-			rootVec.addGrad(1, tree.getRootPlayer(), tree.getRootPlayer().kyokumen.teban());
 			//bts
+			LearnVec rootVec;
+			const double sigH = LearnUtil::EvalToProb(root->getOriginEval());
+			double c = LearnUtil::probT * sigH * (1 - sigH);
+			rootVec.addGrad(c, tree.getRootPlayer(), tree.getRootPlayer().kyokumen.teban());
 			if (learning_rate_bts > 0) {
-				dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - LearnUtil::EvalToProb(root->eval)) * rootVec;
+				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
