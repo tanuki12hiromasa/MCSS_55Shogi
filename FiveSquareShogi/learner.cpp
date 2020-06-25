@@ -58,8 +58,14 @@ void Learner::execute() {
 		}
 		else if (tokens[0] == "selfplaylearn") {
 			//自己対局を行い、その棋譜データで学習を行うことを繰り返す
-			//selfplaylearn 回数
-			learner.selfplay_learn(tokens);
+			if (tokens[2] == "bts0") {
+				//単純なbootstrapのみで学習
+				learner.selfplay_simple_bootstrap();
+			}
+			else {
+				//selfplaylearn 回数
+				learner.selfplay_learn(tokens);
+			}
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -186,7 +192,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		}
 		//bts
 		if (learning_rate_bts > 0) {
-			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - Pwin) * rootVec;
 		}
 		//reg
 		if (learning_rate_reg > 0) {
@@ -240,7 +246,7 @@ LearnVec Learner::simple_bootstrap(const Kyokumen startKyokumen, const std::vect
 		rootVec.addGrad(1, tree.getRootPlayer(), learnteban);
 		//bts
 		if (learning_rate_bts > 0) {
-			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - Pwin) * rootVec;
 		}
 		std::cout << " calculated." << std::endl;
 
@@ -280,7 +286,7 @@ LearnVec Learner::sampling_bootstrap(const Kyokumen startKyokumen, const std::ve
 		LearnVec rootVec = LearnUtil::getGrad(root, tree.getRootPlayer(), learnteban, 1000, 0);
 		//bts
 		if (learning_rate_bts > 0) {
-			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->eval) - Pwin) * rootVec;
+			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - Pwin) * rootVec;
 		}
 		std::cout << " calculated." << std::endl;
 
@@ -356,10 +362,8 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 			}
 			std::cout << "gameend."<< std::endl;
 		}
-		//dw += reinforcement_learn(startpos, history, winner, true);
-		//dw += reinforcement_learn(startpos, history, winner, false);
-		dw += simple_bootstrap(startpos, history, winner, true);
-		dw += simple_bootstrap(startpos, history, winner, false);
+		dw += reinforcement_learn(startpos, history, winner, true);
+		dw += reinforcement_learn(startpos, history, winner, false);
 		dw.clamp(1000);
 		LearnVec::EvalClamp(30000);
 		dw.updateEval();
@@ -367,3 +371,50 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 	}
 	std::cout << "self-play learning finished" << std::endl;
 }
+
+void Learner::selfplay_simple_bootstrap() {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+
+	LearnVec dw;
+	std::cout << "self-play learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	int winner = 0;
+	{
+		SearchTree tree;
+		tree.makeNewTree(startpos, {});
+		while (true) {
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+			if (root->eval >= SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				history.push_back(LearnUtil::choiceBestChild(root)->move);
+				break;
+			}
+			else if (root->eval <= -SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				break;
+			}
+
+			LearnVec rootVec;
+			rootVec.addGrad(1, tree.getRootPlayer(), tree.getRootPlayer().kyokumen.teban());
+			//bts
+			if (learning_rate_bts > 0) {
+				dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - LearnUtil::EvalToProb(root->eval)) * rootVec;
+			}
+
+			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			tree.proceed(next);
+			history.push_back(next->move);
+			std::cout << next->move.toUSI() << std::endl;
+		}
+		std::cout << "gameend." << std::endl;
+	}
+	dw.clamp(1000);
+	LearnVec::EvalClamp(30000);
+	dw.updateEval();
+	Evaluator::save();
+	std::cout << "self-play learning finished" << std::endl;
+}
+
