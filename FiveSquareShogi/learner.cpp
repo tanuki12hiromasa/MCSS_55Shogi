@@ -62,6 +62,9 @@ void Learner::execute() {
 				//単純なbootstrapのみで学習
 				learner.selfplay_simple_bootstrap();
 			}
+			else if (tokens[2] == "bts1") {
+				learner.selfplay_child_bootstrap();
+			}
 			else {
 				//selfplaylearn 回数
 				learner.selfplay_learn(tokens);
@@ -398,10 +401,11 @@ void Learner::selfplay_simple_bootstrap() {
 			}
 
 			//bts
+			const auto rootplayer = tree.getRootPlayer();
 			LearnVec rootVec;
-			const double sigH = LearnUtil::EvalToProb(root->getOriginEval());
+			const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
 			double c = LearnUtil::probT * sigH * (1 - sigH);
-			rootVec.addGrad(c, tree.getRootPlayer(), tree.getRootPlayer().kyokumen.teban());
+			rootVec.addGrad(c, rootplayer, rootplayer.kyokumen.teban());
 			if (learning_rate_bts > 0) {
 				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
@@ -420,3 +424,70 @@ void Learner::selfplay_simple_bootstrap() {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
+
+void Learner::selfplay_child_bootstrap() {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+
+	LearnVec dw;
+	std::cout << "self-play learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	int winner = 0;
+	{
+		SearchTree tree;
+		tree.makeNewTree(startpos, {});
+		while (true) {
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+			if (root->eval >= SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				history.push_back(LearnUtil::choiceBestChild(root)->move);
+				break;
+			}
+			else if (root->eval <= -SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				break;
+			}
+
+			//bts
+			if (learning_rate_bts > 0) {
+				constexpr double Ta = 100;
+				const auto rootplayer = tree.getRootPlayer();
+				LearnVec rootVec;
+				const double rootE = LearnUtil::EvalToProb(root->eval);
+				double min = std::numeric_limits<double>::max();
+				for (const auto child : root->children) {
+					if (child->eval < min) min = child->eval;
+				}
+				double Z = 0;
+				for (const auto child : root->children) {
+					Z += std::exp(-(child->eval - min) / Ta);
+				}
+				for (const auto child : root->children) {
+					const double pi = std::exp(-(child->eval - min) / Ta) / Z;
+					auto cplayer = rootplayer;
+					cplayer.proceed(child->move);
+					const double c_sigE = 1 - LearnUtil::EvalToProb(child->eval);
+					const double c_sigH = 1 - LearnUtil::EvalToProb(Evaluator::evaluate(cplayer));
+					const double c = -pi * ((c_sigE - rootE) / LearnUtil::pTb + 1) * LearnUtil::probT * c_sigH * (1 - c_sigH);
+					rootVec.addGrad(c, cplayer, rootplayer.kyokumen.teban());
+				}
+				const double sigE = LearnUtil::EvalToProb(root->eval);
+				const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
+				dw += -learning_rate_bts * (sigH - sigE) * rootVec;
+			}
+
+			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			tree.proceed(next);
+			history.push_back(next->move);
+			std::cout << next->move.toUSI() << std::endl;
+		}
+		std::cout << "gameend." << std::endl;
+	}
+	dw.clamp(1000);
+	LearnVec::EvalClamp(30000);
+	dw.updateEval();
+	Evaluator::save();
+	std::cout << "self-play learning finished" << std::endl;
+}

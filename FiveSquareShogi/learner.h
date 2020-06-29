@@ -19,6 +19,7 @@ private:
 	void consecutive_rl(const std::string& sfenfile);
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
 	void selfplay_simple_bootstrap();
+	void selfplay_child_bootstrap();
 
 	double T_search = 120;
 	double T_selfplay = 100;
