@@ -102,7 +102,7 @@ SearchPlayer LearnUtil::getQSBest(const SearchNode* const root, SearchPlayer& pl
 }
 
 LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum, const int qsdepth) {
-	const double T = SearchNode::getTeval();
+	const double T = 120;
 	LearnVec vec;
 	if (root == nullptr) return vec;
 	if (root->children.empty()) {

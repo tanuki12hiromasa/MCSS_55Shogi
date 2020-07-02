@@ -520,7 +520,7 @@ void Learner::selfplay_sampling_bootstrap() {
 			//bts
 			const auto rootplayer = tree.getRootPlayer();
 			const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
-			LearnVec rootVec = LearnUtil::getGrad(root, rootplayer, true, 100, 0);
+			LearnVec rootVec = LearnUtil::getGrad(root, rootplayer, true, 5000, 0);
 			if (learning_rate_bts > 0) {
 				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
