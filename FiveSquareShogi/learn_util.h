@@ -10,6 +10,7 @@ public:
 	static SearchNode* choiceBestChild(const SearchNode* const root);
 	static SearchPlayer getQSBest(const SearchNode* const root, SearchPlayer& player, const int depthlimit);
 	static LearnVec getGrad(const SearchNode* const root, const SearchPlayer& player, bool teban, unsigned long long samplingnum, const int qsdepth=8);
+	static LearnVec getSamplingGrad(const SearchNode* root, const SearchPlayer& player, bool teban, unsigned long long samplingnum, const int qsdepth = 8);
 	static double EvalToProb(const double eval);
 	static constexpr double probT = 600.0;
 	static double pTb;

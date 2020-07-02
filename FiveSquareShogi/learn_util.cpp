@@ -129,6 +129,47 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 			c *= -((Peval - Peval_prev) / pTb + 1);
 			Peval_prev = Peval;
 		}
+		/*const auto qsbest = getQSBest(node, player, qsdepth);
+		const double Peval = EvalToProb(Evaluator::evaluate(qsbest));
+		c *= probT * Peval * (1 - Peval);
+		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
+		vec.addGrad(c, qsbest, teban);*/
+		const double Peval = EvalToProb(Evaluator::evaluate(player));
+		c *= probT * Peval * (1 - Peval);
+		vec.addGrad(c, player, teban);
+	}
+	vec *= (1.0 / samplingnum);
+	return vec;
+}
+
+LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum, const int qsdepth) {
+	const double T = SearchNode::getTeval();
+	LearnVec vec;
+	if (root == nullptr) return vec;
+	if (root->children.empty()) {
+		auto player = rootplayer;
+		double c = 1;
+		const auto qsbest = getQSBest(root, player, qsdepth);
+		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
+		vec.addGrad(c, qsbest, teban);
+		return vec;
+	}
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	for (unsigned long long i = 0; i < samplingnum; i++) {
+		const SearchNode* node = root;
+		double c = 1;
+		double Peval_prev = (teban == rootplayer.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
+		SearchPlayer player = rootplayer;
+		while (!node->isLeaf()) {
+			auto next = choiceChildRandom(node, T, random(engine));
+			if (next == nullptr)break;
+			node = next;
+			player.proceed(node->move);
+			const double Peval = (teban == player.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
+			c *= -((Peval - Peval_prev) / pTb + 1);
+			Peval_prev = Peval;
+		}
 		const double Peval = EvalToProb(node->eval);
 		c *= probT * Peval * (1 - Peval);
 		const auto qsbest = getQSBest(node, player, qsdepth);
