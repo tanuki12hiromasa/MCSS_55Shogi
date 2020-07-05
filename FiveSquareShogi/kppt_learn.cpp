@@ -130,7 +130,9 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::updateEval()const {
+	void kppt_paramVector::updateEval() {
+		clamp(1000);
+		EvalClamp(30000);
 		//KPPのテーブル形式の違いに注意する
 		for (unsigned k = 0; k < SquareNum; k++) {
 			for (unsigned p1 = 0; p1 < fe_end; p1++) {

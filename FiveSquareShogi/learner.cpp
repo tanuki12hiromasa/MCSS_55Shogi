@@ -65,6 +65,9 @@ void Learner::execute() {
 			else if (tokens[2] == "bts1") {
 				learner.selfplay_child_bootstrap();
 			}
+			else if (tokens[2] == "reg") {
+				learner.selfplay_sampling_regression();
+			}
 			else {
 				//selfplaylearn 回数
 				learner.selfplay_learn(tokens);
@@ -492,11 +495,12 @@ void Learner::selfplay_child_bootstrap() {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::selfplay_sampling_bootstrap() {
+void Learner::selfplay_sampling_regression() {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 
-	LearnVec dw;
+	LearnVec dw_sWin;
+	LearnVec dw_gWin;
 	std::cout << "self-play sampling learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
@@ -517,24 +521,37 @@ void Learner::selfplay_sampling_bootstrap() {
 				break;
 			}
 
-			//bts
+			//reg
 			const auto rootplayer = tree.getRootPlayer();
-			const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
-			LearnVec rootVec = LearnUtil::getGrad(root, rootplayer, true, 5000, 0);
-			if (learning_rate_bts > 0) {
-				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
+			bool rootteban = rootplayer.kyokumen.teban();
+			LearnVec Pwin_grad = LearnUtil::getSamplingGrad(root, rootplayer, rootteban, 5000, 0);
+			double Pwin = LearnUtil::EvalToProb(root->eval);
+			Pwin_grad *= Pwin * (1 - Pwin) / LearnUtil::probT;
+			if (rootteban) {
+				dw_sWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
+				dw_gWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
+			}
+			else {
+				dw_gWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
+				dw_sWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
+			//tree.deleteBranch(root, history);
 			std::cout << next->move.toUSI() << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}
-	dw.clamp(1000);
-	LearnVec::EvalClamp(30000);
-	dw.updateEval();
+
+	if (winner > 0) {
+		dw_sWin.updateEval();
+	}
+	else {
+		dw_gWin.updateEval();
+	}
 	Evaluator::save();
+
 	std::cout << "self-play learning finished" << std::endl;
 }

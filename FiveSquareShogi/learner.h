@@ -20,7 +20,7 @@ private:
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
 	void selfplay_simple_bootstrap();
 	void selfplay_child_bootstrap();
-	void selfplay_sampling_bootstrap();
+	void selfplay_sampling_regression();
 
 	double T_search = 120;
 	double T_selfplay = 100;

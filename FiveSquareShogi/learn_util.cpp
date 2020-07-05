@@ -142,16 +142,23 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 	return vec;
 }
 
-LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum, const int qsdepth) {
-	const double T = SearchNode::getTeval();
+LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPlayer& rootplayer, const bool teban, unsigned long long samplingnum, const int qsdepth) {
+	const double T = 100;
 	LearnVec vec;
 	if (root == nullptr) return vec;
 	if (root->children.empty()) {
 		auto player = rootplayer;
 		double c = 1;
-		const auto qsbest = getQSBest(root, player, qsdepth);
-		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
-		vec.addGrad(c, qsbest, teban);
+		if (teban == player.kyokumen.teban()) {
+			const double sigH = EvalToProb(Evaluator::evaluate(player));
+			c = probT * sigH * (1 - sigH);
+			vec.addGrad(c, player, teban);
+		}
+		else {
+			const double sigH = EvalToProb(Evaluator::evaluate(player, false));
+			c = -probT * sigH * (1 - sigH);
+			vec.addGrad(c, player, teban);
+		}
 		return vec;
 	}
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
@@ -159,22 +166,30 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 	for (unsigned long long i = 0; i < samplingnum; i++) {
 		const SearchNode* node = root;
 		double c = 1;
-		double Peval_prev = (teban == rootplayer.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
 		SearchPlayer player = rootplayer;
 		while (!node->isLeaf()) {
-			auto next = choiceChildRandom(node, T, random(engine));
-			if (next == nullptr)break;
-			node = next;
-			player.proceed(node->move);
-			const double Peval = (teban == player.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
-			c *= -((Peval - Peval_prev) / pTb + 1);
-			Peval_prev = Peval;
+			if (player.kyokumen.teban() == teban) {
+				const double sigV = EvalToProb(node->eval);
+				node = choiceChildRandom(node, T, random(engine));
+				player.proceed(node->move);
+				const double sigQ = 1 - EvalToProb(node->eval);
+				c *= (sigQ - sigV) / pTb + 1;
+			}
+			else {
+				node = choiceChildRandom(node, T, random(engine));
+				player.proceed(node->move);
+			}
 		}
-		const double Peval = EvalToProb(node->eval);
-		c *= probT * Peval * (1 - Peval);
-		const auto qsbest = getQSBest(node, player, qsdepth);
-		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
-		vec.addGrad(c, qsbest, teban);
+		if (player.kyokumen.teban() == teban) {
+			const double sigH = EvalToProb(Evaluator::evaluate(player));
+			c *= probT * sigH * (1 - sigH);
+			vec.addGrad(c, player, teban);
+		}
+		else {
+			const double sigH = EvalToProb(Evaluator::evaluate(player, false));
+			c *= -probT * sigH * (1 - sigH);
+			vec.addGrad(c, player, teban);
+		}
 	}
 	vec *= (1.0 / samplingnum);
 	return vec;

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "kppt_evaluate.h"
 #include <fstream>
 #include <iostream>
@@ -19,6 +19,15 @@ namespace kppt {
 	
 	double kppt_evaluator::evaluate(const SearchPlayer& player) {
 		return (double)player.feature.sum.sum(player.kyokumen.teban()) / FVScale;
+	}
+
+	double kppt_evaluator::evaluate(const SearchPlayer& player, bool jiteban) {
+		if (jiteban) {
+			return (double)player.feature.sum.sum(player.kyokumen.teban()) / FVScale;
+		}
+		else {
+			return -(double)player.feature.sum.sum(!player.kyokumen.teban()) / FVScale;
+		}
 	}
 
 	void kppt_evaluator::genFirstEvalFile(const std::string& folderpath) {

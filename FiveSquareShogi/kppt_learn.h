@@ -30,7 +30,7 @@ namespace kppt {
 		void addGrad(const float scalar,const SearchPlayer&,bool rootTeban);
 		void clamp(float absmax);
 
-		void updateEval()const;
+		void updateEval();
 	private:
 		EvalVectorFloat* KPP;
 		EvalVectorFloat* KKP;
