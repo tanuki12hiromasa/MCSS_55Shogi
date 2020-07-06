@@ -526,7 +526,7 @@ void Learner::selfplay_sampling_regression() {
 			bool rootteban = rootplayer.kyokumen.teban();
 			LearnVec Pwin_grad = LearnUtil::getSamplingGrad(root, rootplayer, rootteban, 5000, 0);
 			double Pwin = LearnUtil::EvalToProb(root->eval);
-			Pwin_grad *= Pwin * (1 - Pwin) / LearnUtil::probT;
+			Pwin_grad *= Pwin * (1 - Pwin) * LearnUtil::probT;
 			if (rootteban) {
 				dw_sWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
 				dw_gWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
