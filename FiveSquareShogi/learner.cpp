@@ -68,6 +68,9 @@ void Learner::execute() {
 			else if (tokens[2] == "reg") {
 				learner.selfplay_sampling_regression();
 			}
+			else if (tokens[2] == "pge") {
+				learner.selfplay_sampling_pge();
+			}
 			else {
 				//selfplaylearn 回数
 				learner.selfplay_learn(tokens);
