@@ -526,7 +526,7 @@ void Learner::selfplay_sampling_regression() {
 			bool rootteban = rootplayer.kyokumen.teban();
 			LearnVec Pwin_grad = LearnUtil::getSamplingGrad(root, rootplayer, rootteban, 5000, 0);
 			double Pwin = LearnUtil::EvalToProb(root->eval);
-			Pwin_grad *= Pwin * (1 - Pwin) * LearnUtil::probT;
+			//Pwin_grad *= Pwin * (1 - Pwin) * LearnUtil::probT;
 			if (rootteban) {
 				dw_sWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
 				dw_gWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
@@ -551,6 +551,80 @@ void Learner::selfplay_sampling_regression() {
 	else {
 		dw_gWin.updateEval();
 	}
+	Evaluator::save();
+
+	std::cout << "self-play learning finished" << std::endl;
+}
+
+void Learner::selfplay_sampling_pge() {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+
+	LearnVec dw;
+	std::cout << "self-play sampling pge learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	int winner = 0;
+	{
+		SearchTree tree;
+		tree.makeNewTree(startpos, {});
+		while (true) {
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+			if (root->eval >= SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				history.push_back(LearnUtil::choiceBestChild(root)->move);
+				break;
+			}
+			else if (root->eval <= -SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				break;
+			}
+
+			//reg
+			const double Ta = 100;
+			const auto rootplayer = tree.getRootPlayer();
+			bool rootteban = rootplayer.kyokumen.teban();
+			double min = std::numeric_limits<double>::max();
+			Move bestmove = root->children.front()->move;
+			for (const auto child : root->children) {
+				if (child->eval < min) {
+					min = child->eval; 
+					bestmove = child->move;
+				}
+			}
+			double Z = 0;
+			for (const auto child : root->children) {
+				Z += std::exp(-(child->eval - min) / Ta);
+			}
+			SearchNode* next = root->children.front();
+			double pip = random(engine);
+			for (const auto child : root->children) {
+				const double pi = std::exp(-(child->eval - min) / Ta) / Z;
+				auto cplayer = rootplayer;
+				cplayer.proceed(child->move);
+				LearnVec childvec = LearnUtil::getSamplingGrad(child, cplayer, !rootteban, 10000 * pi, 0);
+				if (child->move == bestmove) {
+					dw += samplingrate * childvec;
+				}
+				dw += samplingrate * (-pi) * childvec;
+
+				//ついでに次の手を決めておく
+				pip -= pi;
+				if (pip <= 0) {
+					next = child;
+					pip = 200;
+				}
+			}
+			tree.proceed(next);
+			history.push_back(next->move);
+			//tree.deleteBranch(root, history);
+			std::cout << next->move.toUSI() << std::endl;
+		}
+		std::cout << "gameend." << std::endl;
+	}
+
+	dw.updateEval();
 	Evaluator::save();
 
 	std::cout << "self-play learning finished" << std::endl;

@@ -21,6 +21,7 @@ private:
 	void selfplay_simple_bootstrap();
 	void selfplay_child_bootstrap();
 	void selfplay_sampling_regression();
+	void selfplay_sampling_pge();
 
 	double T_search = 120;
 	double T_selfplay = 100;
