@@ -71,6 +71,9 @@ void Learner::execute() {
 			else if (tokens[2] == "pge") {
 				learner.selfplay_sampling_pge();
 			}
+			else if (tokens[2] == "td") {
+				learner.selfplay_sampling_td();
+			}
 			else {
 				//selfplaylearn 回数
 				learner.selfplay_learn(tokens);
@@ -624,6 +627,78 @@ void Learner::selfplay_sampling_pge() {
 			//tree.deleteBranch(root, history);
 			std::cout << next->move.toUSI() << std::endl;
 		}
+		std::cout << "gameend." << std::endl;
+	}
+
+	dw.updateEval();
+	Evaluator::save();
+
+	std::cout << "self-play learning finished" << std::endl;
+}
+
+void Learner::selfplay_sampling_td() {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	SearchNode::setTeval(T_selfplay);
+
+	LearnVec dw;
+	LearnVec s_e_lambda;
+	double s_V_t = 0;
+	LearnVec g_e_lambda;
+	double g_V_t = 0;
+	std::cout << "self-play sampling td-lamda learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	int winner = 0;
+	{
+		SearchTree tree;
+		tree.makeNewTree(startpos, {});
+		while (true) {
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+
+			if (root->eval >= SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				history.push_back(LearnUtil::choiceBestChild(root)->move);
+				break;
+			}
+			else if (root->eval <= -SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				break;
+			}
+
+			//td-lambda
+			if (tree.getRootPlayer().kyokumen.teban()) {
+				double sigV = LearnUtil::EvalToProb(root->eval);
+				if (history.size() >= 2) {
+					dw += learning_rate_td * (td_gamma * sigV - s_V_t) * s_e_lambda;
+				}
+				s_e_lambda *= td_gamma * td_lambda;
+				s_e_lambda += LearnUtil::getSamplingGrad(root, tree.getRootPlayer(), true, 1000, 0);
+				s_V_t = sigV;
+			}
+			else {
+				double sigV = LearnUtil::EvalToProb(root->eval);
+				if (history.size() >= 2) {
+					dw += learning_rate_td * (td_gamma * sigV - g_V_t) * g_e_lambda;
+				}
+				g_e_lambda *= td_gamma * td_lambda;
+				g_e_lambda += LearnUtil::getSamplingGrad(root, tree.getRootPlayer(), false, 1000, 0);
+				g_V_t = sigV;
+			}
+			
+			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			tree.proceed(next);
+			history.push_back(next->move);
+			//tree.deleteBranch(root, history);
+			std::cout << next->move.toUSI() << std::endl;
+		}
+		const double s_V_t1 = LearnUtil::EvalToProb(tree.getRootPlayer().kyokumen.teban() ? Evaluator::evaluate(tree.getRootPlayer()) : -Evaluator::evaluate(tree.getRootPlayer()));
+		const double g_V_t1 = 1-s_V_t1;
+		const double s_delta_t = winner + td_gamma * s_V_t1 - s_V_t;
+		const double g_delta_t = -winner + td_gamma * g_V_t1 - g_V_t;
+		dw += learning_rate_td * s_delta_t * s_e_lambda;
+		dw += learning_rate_td * g_delta_t * g_e_lambda;
 		std::cout << "gameend." << std::endl;
 	}
 

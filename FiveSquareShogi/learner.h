@@ -22,6 +22,7 @@ private:
 	void selfplay_child_bootstrap();
 	void selfplay_sampling_regression();
 	void selfplay_sampling_pge();
+	void selfplay_sampling_td();
 
 	double T_search = 120;
 	double T_selfplay = 100;
@@ -37,8 +38,8 @@ private:
 	double learning_rate_reg = 0.1;
 	double learning_rate_pge = 0.1;
 
-	double td_gamma = 0.9;
-	double td_lambda = 0.8;
+	double td_gamma = 0.95;
+	double td_lambda = 0.9;
 
 	friend class ShogiTest;
 };
