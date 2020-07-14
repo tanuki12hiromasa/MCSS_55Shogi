@@ -479,12 +479,10 @@ void Learner::selfplay_child_bootstrap() {
 					cplayer.proceed(child->move);
 					const double c_sigE = 1 - LearnUtil::EvalToProb(child->eval);
 					const double c_sigH = 1 - LearnUtil::EvalToProb(Evaluator::evaluate(cplayer));
-					const double c = -pi * ((c_sigE - rootE) / LearnUtil::pTb + 1) * LearnUtil::probT * c_sigH * (1 - c_sigH);
+					const double c = (c_sigH - c_sigE) * LearnUtil::probT * c_sigH * (1 - c_sigH);
 					rootVec.addGrad(c, cplayer, rootplayer.kyokumen.teban());
 				}
-				const double sigE = LearnUtil::EvalToProb(root->eval);
-				const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
-				dw += -learning_rate_bts * (sigH - sigE) * rootVec;
+				dw += -learning_rate_bts * rootVec;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
@@ -611,9 +609,9 @@ void Learner::selfplay_sampling_pge() {
 				cplayer.proceed(child->move);
 				LearnVec childvec = LearnUtil::getSamplingGrad(child, cplayer, !rootteban, 10000 * pi, 0);
 				if (child->move == bestmove) {
-					dw += samplingrate * childvec;
+					dw += learning_rate_pge * childvec;
 				}
-				dw += samplingrate * (-pi) * childvec;
+				dw += learning_rate_pge * (-pi) * childvec;
 
 				//ついでに次の手を決めておく
 				pip -= pi;
