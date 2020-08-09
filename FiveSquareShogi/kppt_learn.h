@@ -27,7 +27,7 @@ namespace kppt {
 		kppt_evaluator& operator=(const kppt_paramVector&) = delete;
 
 		void reset();
-		void addGrad(const float scalar,const SearchPlayer&,bool rootTeban);
+		void addGrad(const float scalar,const SearchPlayer&);
 		void clamp(float absmax);
 
 		void updateEval();

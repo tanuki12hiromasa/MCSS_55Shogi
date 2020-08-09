@@ -8,7 +8,7 @@ SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const dou
 	double CE = std::numeric_limits<double>::max();
 	std::vector<dn> evals; evals.reserve(root->children.size());
 	for (const auto& child : root->children) {
-		double eval = child->getEs();
+		const double eval = child->eval;
 		evals.push_back(std::make_pair(eval, child));
 		if (eval < CE) {
 			CE = eval;
@@ -110,7 +110,7 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 		double c = 1;
 		const auto qsbest = getQSBest(root, player, qsdepth);
 		if (qsbest.kyokumen.teban() != player.kyokumen.teban()) c = -c;
-		vec.addGrad(c, qsbest, teban);
+		vec.addGrad(c, qsbest);
 		return vec;
 	}
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
@@ -136,7 +136,7 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 		vec.addGrad(c, qsbest, teban);*/
 		const double Peval = EvalToProb(Evaluator::evaluate(player));
 		c *= probT * Peval * (1 - Peval);
-		vec.addGrad(c, player, teban);
+		vec.addGrad(c, player);
 	}
 	vec *= (1.0 / samplingnum);
 	return vec;
@@ -152,12 +152,12 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 		if (teban == player.kyokumen.teban()) {
 			const double sigH = EvalToProb(Evaluator::evaluate(player));
 			c = probT * sigH * (1 - sigH);
-			vec.addGrad(c, player, teban);
+			vec.addGrad(c, player);
 		}
 		else {
-			const double sigH = EvalToProb(Evaluator::evaluate(player, false));
+			const double sigH = EvalToProb(Evaluator::evaluate(player));
 			c = -probT * sigH * (1 - sigH);
-			vec.addGrad(c, player, teban);
+			vec.addGrad(c, player);
 		}
 		return vec;
 	}
@@ -183,12 +183,12 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 		if (player.kyokumen.teban() == teban) {
 			const double sigH = EvalToProb(Evaluator::evaluate(player));
 			c *= probT * sigH * (1 - sigH);
-			vec.addGrad(c, player, teban);
+			vec.addGrad(c, player);
 		}
 		else {
 			const double sigH = EvalToProb(Evaluator::evaluate(player, false));
 			c *= -probT * sigH * (1 - sigH);
-			vec.addGrad(c, player, teban);
+			vec.addGrad(c, player);
 		}
 	}
 	vec *= (1.0 / samplingnum);

@@ -165,7 +165,7 @@ LearnVec Learner::reinforcement_learn(const Kyokumen startKyokumen, const std::v
 		}
 		LearnVec rootVec;
 		if (root->children.empty()) {
-			rootVec.addGrad(1, tree.getRootPlayer(), true);
+			rootVec.addGrad(1, tree.getRootPlayer());
 		}
 		else {
 			double Emin = std::numeric_limits<double>::max();
@@ -255,7 +255,7 @@ LearnVec Learner::simple_bootstrap(const Kyokumen startKyokumen, const std::vect
 		const auto root = tree.getRoot();
 		double Pwin = LearnUtil::EvalToProb(root->eval);
 		LearnVec rootVec;
-		rootVec.addGrad(1, tree.getRootPlayer(), learnteban);
+		rootVec.addGrad(1, tree.getRootPlayer());
 		//bts
 		if (learning_rate_bts > 0) {
 			dw += -learning_rate_bts * (LearnUtil::EvalToProb(root->getOriginEval()) - Pwin) * rootVec;
@@ -414,7 +414,7 @@ void Learner::selfplay_simple_bootstrap() {
 			LearnVec rootVec;
 			const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
 			double c = LearnUtil::probT * sigH * (1 - sigH);
-			rootVec.addGrad(c, rootplayer, rootplayer.kyokumen.teban());
+			rootVec.addGrad(c, rootplayer);
 			if (learning_rate_bts > 0) {
 				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
@@ -439,7 +439,7 @@ void Learner::selfplay_child_bootstrap() {
 	std::mt19937_64 engine{ std::random_device()() };
 
 	LearnVec dw;
-	std::cout << "self-play learning \n";
+	std::cout << "self-play bts-c learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
 	int winner = 0;
@@ -461,26 +461,15 @@ void Learner::selfplay_child_bootstrap() {
 
 			//bts
 			if (learning_rate_bts > 0) {
-				constexpr double Ta = 100;
-				const auto rootplayer = tree.getRootPlayer();
+				const auto& rootplayer = tree.getRootPlayer();
 				LearnVec rootVec;
-				const double rootE = LearnUtil::EvalToProb(root->eval);
-				double min = std::numeric_limits<double>::max();
 				for (const auto child : root->children) {
-					if (child->eval < min) min = child->eval;
-				}
-				double Z = 0;
-				for (const auto child : root->children) {
-					Z += std::exp(-(child->eval - min) / Ta);
-				}
-				for (const auto child : root->children) {
-					const double pi = std::exp(-(child->eval - min) / Ta) / Z;
 					auto cplayer = rootplayer;
 					cplayer.proceed(child->move);
-					const double c_sigE = 1 - LearnUtil::EvalToProb(child->eval);
-					const double c_sigH = 1 - LearnUtil::EvalToProb(Evaluator::evaluate(cplayer));
+					const double c_sigE = LearnUtil::EvalToProb(child->eval);
+					const double c_sigH = LearnUtil::EvalToProb(Evaluator::evaluate(cplayer));
 					const double c = (c_sigH - c_sigE) * LearnUtil::probT * c_sigH * (1 - c_sigH);
-					rootVec.addGrad(c, cplayer, rootplayer.kyokumen.teban());
+					rootVec.addGrad(c, cplayer);
 				}
 				dw += -learning_rate_bts * rootVec;
 			}
@@ -488,7 +477,7 @@ void Learner::selfplay_child_bootstrap() {
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
-			std::cout << next->move.toUSI() << std::endl;
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}
@@ -705,3 +694,4 @@ void Learner::selfplay_sampling_td() {
 
 	std::cout << "self-play learning finished" << std::endl;
 }
+

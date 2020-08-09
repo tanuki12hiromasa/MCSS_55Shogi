@@ -83,7 +83,7 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::addGrad(const float scalar,const SearchPlayer& player,bool rootTeban) {
+	void kppt_paramVector::addGrad(const float scalar,const SearchPlayer& player) {
 		if (std::abs(scalar) < 0.00000001f) return;
 		EvalVectorFloat* const kpp = KPP;
 		EvalVectorFloat* const kkp = KKP;
@@ -92,7 +92,7 @@ namespace kppt {
 		const unsigned invgkpos = inverse(gkpos);
 		const unsigned invskpos = inverse(skpos);
 		const float bammenscalar = (player.kyokumen.teban()) ? scalar : -scalar;
-		const float tebanscalar = (player.kyokumen.teban() == rootTeban) ? scalar : -scalar;
+		const float tebanscalar = scalar;
 		for (unsigned i = 0; i < EvalList::EvalListSize; ++i) {
 			const int k0 = player.feature.idlist.list0[i];
 			const int k1 = player.feature.idlist.list1[i];
