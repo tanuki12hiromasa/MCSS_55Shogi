@@ -58,24 +58,29 @@ void Learner::execute() {
 		}
 		else if (tokens[0] == "selfplaylearn") {
 			//自己対局を行い、その棋譜データで学習を行うことを繰り返す
-			if (tokens[2] == "bts0") {
-				//単純なbootstrapのみで学習
-				learner.selfplay_simple_bootstrap();
-			}
-			else if (tokens[2] == "bts1") {
-				learner.selfplay_child_bootstrap();
-			}
-			else if (tokens[2] == "reg") {
-				learner.selfplay_sampling_regression();
-			}
-			else if (tokens[2] == "pge") {
-				learner.selfplay_sampling_pge();
-			}
-			else if (tokens[2] == "td") {
-				learner.selfplay_sampling_td();
+			if (tokens.size() > 2) {
+				if (tokens[2] == "bts0") {
+					//単純なbootstrapのみで学習
+					learner.selfplay_simple_bootstrap();
+				}
+				else if (tokens[2] == "bts1") {
+					learner.selfplay_child_bootstrap();
+				}
+				else if (tokens[2] == "reg") {
+					learner.selfplay_sampling_regression();
+				}
+				else if (tokens[2] == "pge") {
+					learner.selfplay_sampling_pge();
+				}
+				else if (tokens[2] == "td") {
+					learner.selfplay_sampling_td();
+				}
+				else {
+					//selfplaylearn 回数
+					learner.selfplay_learn(tokens);
+				}
 			}
 			else {
-				//selfplaylearn 回数
 				learner.selfplay_learn(tokens);
 			}
 		}
@@ -446,6 +451,7 @@ void Learner::selfplay_child_bootstrap() {
 	{
 		SearchTree tree;
 		tree.makeNewTree(startpos, {});
+		const double T = T_selfplay;
 		while (true) {
 			search(tree, searchtime);
 			const auto root = tree.getRoot();
@@ -463,15 +469,27 @@ void Learner::selfplay_child_bootstrap() {
 			if (learning_rate_bts > 0) {
 				const auto& rootplayer = tree.getRootPlayer();
 				LearnVec rootVec;
+				double cmin = std::numeric_limits<double>::max();
+				for (const auto child : root->children) {
+					if (child->eval < cmin) {
+						cmin = child->eval;
+					}
+				}
+				double Z = 0;
+				for (const auto child : root->children) {
+					Z += std::exp(-(child->eval - cmin) / T);
+				}
 				for (const auto child : root->children) {
 					auto cplayer = rootplayer;
+					const double pi = std::exp(-(child->eval - cmin) / T) / Z;
 					cplayer.proceed(child->move);
 					const double c_sigE = LearnUtil::EvalToProb(child->eval);
 					const double c_sigH = LearnUtil::EvalToProb(Evaluator::evaluate(cplayer));
-					const double c = (c_sigH - c_sigE) * LearnUtil::probT * c_sigH * (1 - c_sigH);
-					rootVec.addGrad(c, cplayer);
+					const double c = -(c_sigH - c_sigE) * LearnUtil::probT * c_sigH * (1 - c_sigH);
+					rootVec.addGrad(c * pi, cplayer);
+					//std::cout << child->move.toUSI() << ":" << c_sigH << "," << c_sigE << " ";
 				}
-				dw += -learning_rate_bts * rootVec;
+				dw += learning_rate_pp * rootVec;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
