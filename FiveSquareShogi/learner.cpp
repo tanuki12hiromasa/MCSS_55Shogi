@@ -75,6 +75,10 @@ void Learner::execute() {
 				else if (tokens[2] == "td") {
 					learner.selfplay_sampling_td();
 				}
+				else if (tokens[2] == "btss") {
+					const int samplingnum = (tokens.size() > 3) ? std::stoi(tokens[3]) : 20;
+					learner.selfplay_sampling_bts(samplingnum);
+				}
 				else {
 					//selfplaylearn 回数
 					learner.selfplay_learn(tokens);
@@ -713,3 +717,60 @@ void Learner::selfplay_sampling_td() {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
+void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+
+	LearnVec dw;
+	std::cout << "self-play bts-s learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	int winner = 0;
+	{
+		SearchTree tree;
+		tree.makeNewTree(startpos, {});
+		const double T = T_selfplay;
+		while (true) {
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+			if (root->eval >= SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				history.push_back(LearnUtil::choiceBestChild(root)->move);
+				break;
+			}
+			else if (root->eval <= -SearchNode::getMateScoreBound()) {
+				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				break;
+			}
+
+			//bts
+			if (learning_rate_bts > 0) {
+				LearnVec vec;
+				for (int samplingcount = 0; samplingcount < samplingnum; samplingcount++) {
+					SearchNode* node = tree.getRoot();
+					auto player = tree.getRootPlayer();
+					while (!node->isLeaf()) {
+						const double sigE = LearnUtil::EvalToProb(node->eval);
+						const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
+						const double c = -(sigH - sigE) * LearnUtil::probT * sigH * (1 - sigH);
+						vec.addGrad(c / node->mass, player);
+						node = LearnUtil::choiceChildRandom(node, T, random(engine));
+						player.proceed(node->move);
+					}
+				}
+				dw += (learning_rate_bts_sampling / samplingnum) * vec;
+			}
+
+			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			tree.proceed(next);
+			history.push_back(next->move);
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
+		}
+		std::cout << "gameend." << std::endl;
+	}
+	dw.clamp(1000);
+	LearnVec::EvalClamp(30000);
+	dw.updateEval();
+	Evaluator::save();
+	std::cout << "self-play learning finished" << std::endl;
+}

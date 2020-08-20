@@ -23,10 +23,11 @@ private:
 	void selfplay_sampling_regression();
 	void selfplay_sampling_pge();
 	void selfplay_sampling_td();
+	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
 	double T_search = 120;
-	double T_selfplay = 100;
-	std::chrono::milliseconds searchtime{ 500 };
+	double T_selfplay = 120;
+	std::chrono::milliseconds searchtime{ 1000 };
 	int agentnum = 8;
 
 	double child_pi_limit = 0.00005;
@@ -37,6 +38,7 @@ private:
 	double learning_rate_bts = 0.1;
 	double learning_rate_reg = 0.1;
 	double learning_rate_pge = 0.1;
+	double learning_rate_bts_sampling = 0.1;
 
 	double td_gamma = 0.95;
 	double td_lambda = 0.9;
