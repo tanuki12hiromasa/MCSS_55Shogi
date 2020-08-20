@@ -749,12 +749,13 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 				for (int samplingcount = 0; samplingcount < samplingnum; samplingcount++) {
 					SearchNode* node = tree.getRoot();
 					auto player = tree.getRootPlayer();
-					while (!node->isLeaf()) {
+					while (node && !node->children.empty()) {
 						const double sigE = LearnUtil::EvalToProb(node->eval);
 						const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
 						const double c = -(sigH - sigE) * LearnUtil::probT * sigH * (1 - sigH);
 						vec.addGrad(c / node->mass, player);
 						node = LearnUtil::choiceChildRandom(node, T, random(engine));
+						if (!node)break;
 						player.proceed(node->move);
 					}
 				}
