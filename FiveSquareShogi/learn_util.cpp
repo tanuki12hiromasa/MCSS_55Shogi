@@ -1,7 +1,7 @@
 ﻿#include "learn_util.h"
 #include <iostream>
 
-double LearnUtil::pTb = 0.04;//評価関数をシグモイド関数に写像した場合の方策の温度は、(元の温度)*(写像先の標準的な評価値差)/(元の標準的な評価値差)で求められる。
+double LearnUtil::pTb = 0.1;//評価関数をシグモイド関数に写像した場合の方策の温度は、(元の温度)*(写像先の標準的な評価値差)/(元の標準的な評価値差)で求められる。
 
 SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const double T, double pip) {
 	using dn = std::pair<double, SearchNode*>;
@@ -192,6 +192,72 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 		}
 	}
 	vec *= (1.0 / samplingnum);
+	return vec;
+}
+
+LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchPlayer& rootplayer, const unsigned samplingnum) {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	const double T = SearchNode::getTeval();
+	LearnVec vec;
+	for (unsigned count = 0; count < samplingnum; count++) {
+		const SearchNode* node = root;
+		SearchPlayer player = rootplayer;
+		double c = 1;
+		while (true) {
+			if (node->children.empty()) {
+				vec.addGrad(c, player);
+				break;
+			}
+			SearchNode* enode = choiceChildRandom(node, T, random(engine));
+			if (enode->children.empty()) {
+				vec.addGrad(c, player);
+				break;
+			}
+			const double V = EvalToProb(node->eval);
+			const double Q = 1 - EvalToProb(enode->eval);
+			c *= (Q - V) / pTb + 1;
+			node = choiceChildRandom(enode, T, random(engine));
+			player.proceed(enode->move);
+			player.proceed(node->move);
+		}
+	}
+	vec *= 1.0 / samplingnum;
+	return vec;
+}
+
+LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer& rootplayer, const unsigned samplingnum) {
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	const double T = SearchNode::getTeval();
+	LearnVec vec;
+	if (root->children.empty()) {
+		vec.addGrad(-1, rootplayer);
+		return vec;
+	}
+	for (unsigned count = 0; count < samplingnum; count++) {
+		const SearchNode* node = root;
+		SearchPlayer player = rootplayer;
+		double c = 1;
+		while (true) {
+			SearchNode* fnode = choiceChildRandom(node, T, random(engine));
+			player.proceed(fnode->move);
+			if (fnode->children.empty()) {
+				vec.addGrad(c, player);
+				break;
+			}
+			node = choiceChildRandom(fnode, T, random(engine));
+			if (node->children.empty()) {
+				vec.addGrad(c, player);
+				break;
+			}
+			const double V = EvalToProb(fnode->eval);
+			const double Q = 1 - EvalToProb(node->eval);
+			c *= (Q - V) / pTb + 1;
+			player.proceed(node->move);
+		}
+	}
+	vec *= 1.0 / samplingnum;
 	return vec;
 }
 

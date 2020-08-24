@@ -579,6 +579,8 @@ void Learner::selfplay_sampling_pge() {
 	std::cout << "self-play sampling pge learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
+	SearchNode::setTeval(T_search);
+	SearchNode::setTdepth(T_search);
 	int winner = 0;
 	{
 		SearchTree tree;
@@ -596,10 +598,9 @@ void Learner::selfplay_sampling_pge() {
 				break;
 			}
 
-			//reg
-			const double Ta = 100;
-			const auto rootplayer = tree.getRootPlayer();
-			bool rootteban = rootplayer.kyokumen.teban();
+			//pge
+			const double Ta = T_search;
+			const auto& rootplayer = tree.getRootPlayer();
 			double min = std::numeric_limits<double>::max();
 			Move bestmove = root->children.front()->move;
 			for (const auto child : root->children) {
@@ -612,25 +613,17 @@ void Learner::selfplay_sampling_pge() {
 			for (const auto child : root->children) {
 				Z += std::exp(-(child->eval - min) / Ta);
 			}
-			SearchNode* next = root->children.front();
-			double pip = random(engine);
 			for (const auto child : root->children) {
 				const double pi = std::exp(-(child->eval - min) / Ta) / Z;
 				auto cplayer = rootplayer;
 				cplayer.proceed(child->move);
-				LearnVec childvec = LearnUtil::getSamplingGrad(child, cplayer, !rootteban, 10000 * pi, 0);
+				LearnVec childvec = LearnUtil::getSamplingGradQ(child, cplayer, 10000 * pi);
 				if (child->move == bestmove) {
 					dw += learning_rate_pge * childvec;
 				}
 				dw += learning_rate_pge * (-pi) * childvec;
-
-				//ついでに次の手を決めておく
-				pip -= pi;
-				if (pip <= 0) {
-					next = child;
-					pip = 200;
-				}
 			}
+			const auto next = LearnUtil::choiceChildRandom(root, T_search, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -775,3 +768,4 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 	Evaluator::save();
 	std::cout << "self-play learning finished" << std::endl;
 }
+
