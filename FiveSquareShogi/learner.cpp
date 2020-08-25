@@ -574,6 +574,7 @@ void Learner::selfplay_sampling_regression() {
 void Learner::selfplay_sampling_pge() {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
+	const double Ta = T_search;
 
 	LearnVec dw;
 	std::cout << "self-play sampling pge learning \n";
@@ -599,35 +600,39 @@ void Learner::selfplay_sampling_pge() {
 			}
 
 			//pge
-			const double Ta = T_search;
-			const auto& rootplayer = tree.getRootPlayer();
-			double min = std::numeric_limits<double>::max();
-			Move bestmove = root->children.front()->move;
-			for (const auto child : root->children) {
-				if (child->eval < min) {
-					min = child->eval; 
-					bestmove = child->move;
+			if (learning_rate_pge > 0) {
+				const auto& rootplayer = tree.getRootPlayer();
+				LearnVec vec;
+				double min = std::numeric_limits<double>::max();
+				Move bestmove = root->children.front()->move;
+				for (const auto child : root->children) {
+					if (child->eval < min) {
+						min = child->eval;
+						bestmove = child->move;
+					}
 				}
-			}
-			double Z = 0;
-			for (const auto child : root->children) {
-				Z += std::exp(-(child->eval - min) / Ta);
-			}
-			for (const auto child : root->children) {
-				const double pi = std::exp(-(child->eval - min) / Ta) / Z;
-				auto cplayer = rootplayer;
-				cplayer.proceed(child->move);
-				LearnVec childvec = LearnUtil::getSamplingGradQ(child, cplayer, 10000 * pi);
-				if (child->move == bestmove) {
-					dw += learning_rate_pge * childvec;
+				double Z = 0;
+				for (const auto child : root->children) {
+					Z += std::exp(-(child->eval - min) / Ta);
 				}
-				dw += learning_rate_pge * (-pi) * childvec;
+				for (const auto child : root->children) {
+					const double pi = std::exp(-(child->eval - min) / Ta) / Z;
+					auto cplayer = rootplayer;
+					cplayer.proceed(child->move);
+					LearnVec childvec = LearnUtil::getSamplingGradQ(child, cplayer, 10000 * pi);
+					if (child->move == bestmove) {
+						vec += childvec;
+					}
+					vec += (-pi) * childvec;
+				}
+				dw += learning_rate_pge * vec;
 			}
+
 			const auto next = LearnUtil::choiceChildRandom(root, T_search, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
-			std::cout << next->move.toUSI() << std::endl;
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}

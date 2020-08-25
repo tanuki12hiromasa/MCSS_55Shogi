@@ -6,6 +6,7 @@ double LearnUtil::pTb = 0.1;//評価関数をシグモイド関数に写像し�
 SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const double T, double pip) {
 	using dn = std::pair<double, SearchNode*>;
 	double CE = std::numeric_limits<double>::max();
+	if (root->isLeaf()) return nullptr;
 	std::vector<dn> evals; evals.reserve(root->children.size());
 	for (const auto& child : root->children) {
 		const double eval = child->eval;
@@ -200,17 +201,22 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 	std::mt19937_64 engine{ std::random_device()() };
 	const double T = SearchNode::getTeval();
 	LearnVec vec;
+	if (!root)return vec;
+	if (root->children.empty() || root->isLeaf()) {
+		vec.addGrad(1, rootplayer);
+		return vec;
+	}
 	for (unsigned count = 0; count < samplingnum; count++) {
 		const SearchNode* node = root;
 		SearchPlayer player = rootplayer;
 		double c = 1;
 		while (true) {
-			if (node->children.empty()) {
+			if (node->children.empty() || node->isLeaf()) {
 				vec.addGrad(c, player);
 				break;
 			}
 			SearchNode* enode = choiceChildRandom(node, T, random(engine));
-			if (enode->children.empty()) {
+			if (!enode || enode->children.empty() || enode->isLeaf()) {
 				vec.addGrad(c, player);
 				break;
 			}
@@ -218,6 +224,10 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 			const double Q = 1 - EvalToProb(enode->eval);
 			c *= (Q - V) / pTb + 1;
 			node = choiceChildRandom(enode, T, random(engine));
+			if (!node) {
+				vec.addGrad(c, player);
+				break;
+			}
 			player.proceed(enode->move);
 			player.proceed(node->move);
 		}
@@ -231,7 +241,8 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 	std::mt19937_64 engine{ std::random_device()() };
 	const double T = SearchNode::getTeval();
 	LearnVec vec;
-	if (root->children.empty()) {
+	if (!root)return vec;
+	if (root->children.empty() || root->isLeaf()) {
 		vec.addGrad(-1, rootplayer);
 		return vec;
 	}
@@ -241,13 +252,14 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 		double c = 1;
 		while (true) {
 			SearchNode* fnode = choiceChildRandom(node, T, random(engine));
+			if (!fnode) break;
 			player.proceed(fnode->move);
-			if (fnode->children.empty()) {
+			if (fnode->children.empty() || fnode->isLeaf()) {
 				vec.addGrad(c, player);
 				break;
 			}
 			node = choiceChildRandom(fnode, T, random(engine));
-			if (node->children.empty()) {
+			if (!node || node->children.empty() || node->isLeaf()) {
 				vec.addGrad(c, player);
 				break;
 			}
