@@ -617,13 +617,16 @@ void Learner::selfplay_sampling_pge() {
 				}
 				for (const auto child : root->children) {
 					const double pi = std::exp(-(child->eval - min) / Ta) / Z;
+					//std::cout << pi << " " << std::endl;
 					auto cplayer = rootplayer;
 					cplayer.proceed(child->move);
-					LearnVec childvec = LearnUtil::getSamplingGradQ(child, cplayer, 10000 * pi);
+					LearnVec childvec = LearnUtil::getSamplingGradQ(child, cplayer, 1000 * pi);
 					if (child->move == bestmove) {
-						vec += childvec;
+						vec += (1.0 - pi) * childvec;
 					}
-					vec += (-pi) * childvec;
+					else {
+						vec += (-pi) * childvec; 
+					}
 				}
 				dw += learning_rate_pge * vec;
 			}

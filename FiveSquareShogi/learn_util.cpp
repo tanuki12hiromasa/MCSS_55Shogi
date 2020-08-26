@@ -212,11 +212,15 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 		double c = 1;
 		while (true) {
 			if (node->children.empty() || node->isLeaf()) {
+				const double sigH = EvalToProb(node->eval);
+				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
 			SearchNode* enode = choiceChildRandom(node, T, random(engine));
 			if (!enode || enode->children.empty() || enode->isLeaf()) {
+				const double sigH = EvalToProb(node->eval);
+				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
@@ -225,6 +229,8 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 			c *= (Q - V) / pTb + 1;
 			node = choiceChildRandom(enode, T, random(engine));
 			if (!node) {
+				const double sigH = EvalToProb(node->eval);
+				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
@@ -255,11 +261,15 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 			if (!fnode) break;
 			player.proceed(fnode->move);
 			if (fnode->children.empty() || fnode->isLeaf()) {
+				const double sigH = EvalToProb(node->eval);
+				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
 			node = choiceChildRandom(fnode, T, random(engine));
 			if (!node || node->children.empty() || node->isLeaf()) {
+				const double sigH = EvalToProb(node->eval);
+				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
