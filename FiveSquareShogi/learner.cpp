@@ -628,7 +628,7 @@ void Learner::selfplay_sampling_pge() {
 						vec += (-pi) * childvec; 
 					}
 				}
-				dw += learning_rate_pge * vec;
+				dw += learning_rate_pge / LearnUtil::pTb * vec;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_search, random(engine));

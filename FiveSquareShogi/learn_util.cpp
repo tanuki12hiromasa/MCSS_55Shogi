@@ -227,9 +227,10 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 			const double V = EvalToProb(node->eval);
 			const double Q = 1 - EvalToProb(enode->eval);
 			c *= (Q - V) / pTb + 1;
+			const double fnodeeval = node->eval;
 			node = choiceChildRandom(enode, T, random(engine));
 			if (!node) {
-				const double sigH = EvalToProb(node->eval);
+				const double sigH = EvalToProb(fnodeeval);
 				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
@@ -261,14 +262,14 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 			if (!fnode) break;
 			player.proceed(fnode->move);
 			if (fnode->children.empty() || fnode->isLeaf()) {
-				const double sigH = EvalToProb(node->eval);
+				const double sigH = EvalToProb(fnode->eval);
 				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
 			}
 			node = choiceChildRandom(fnode, T, random(engine));
 			if (!node || node->children.empty() || node->isLeaf()) {
-				const double sigH = EvalToProb(node->eval);
+				const double sigH = EvalToProb(fnode->eval);
 				c *= probT * sigH * (1 - sigH);
 				vec.addGrad(c, player);
 				break;
