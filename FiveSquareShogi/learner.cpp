@@ -519,7 +519,7 @@ void Learner::selfplay_sampling_regression() {
 	std::cout << "self-play sampling learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
-	int winner = 0;
+	bool sentewin = true;
 	{
 		SearchTree tree;
 		tree.makeNewTree(startpos, {});
@@ -527,28 +527,28 @@ void Learner::selfplay_sampling_regression() {
 			search(tree, searchtime);
 			const auto root = tree.getRoot();
 			if (root->eval >= SearchNode::getMateScoreBound()) {
-				winner = tree.getRootPlayer().kyokumen.teban() ? 1 : -1;
+				sentewin = tree.getRootPlayer().kyokumen.teban();
 				history.push_back(LearnUtil::choiceBestChild(root)->move);
 				break;
 			}
 			else if (root->eval <= -SearchNode::getMateScoreBound()) {
-				winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
+				sentewin = !tree.getRootPlayer().kyokumen.teban();
 				break;
 			}
 
 			//reg
-			const auto rootplayer = tree.getRootPlayer();
+			const auto& rootplayer = tree.getRootPlayer();
 			bool rootteban = rootplayer.kyokumen.teban();
-			LearnVec Pwin_grad = LearnUtil::getSamplingGrad(root, rootplayer, rootteban, 5000, 0);
+			LearnVec Pwin_grad = LearnUtil::getSamplingGradV(root, rootplayer, 100);
 			double Pwin = LearnUtil::EvalToProb(root->eval);
 			//Pwin_grad *= Pwin * (1 - Pwin) * LearnUtil::probT;
 			if (rootteban) {
-				dw_sWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
-				dw_gWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
+				dw_sWin += (1 - Pwin) * Pwin_grad;
+				dw_gWin += (0 - Pwin) * Pwin_grad;
 			}
 			else {
-				dw_gWin += learning_rate_reg * (1 - Pwin) * Pwin_grad;
-				dw_sWin += learning_rate_reg * (0 - Pwin) * Pwin_grad;
+				dw_gWin += (1 - Pwin) * Pwin_grad;
+				dw_sWin += (0 - Pwin) * Pwin_grad;
 			}
 
 			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
@@ -560,10 +560,12 @@ void Learner::selfplay_sampling_regression() {
 		std::cout << "gameend." << std::endl;
 	}
 
-	if (winner > 0) {
+	if (sentewin) {
+		dw_sWin *= learning_rate_reg;
 		dw_sWin.updateEval();
 	}
 	else {
+		dw_gWin *= learning_rate_reg;
 		dw_gWin.updateEval();
 	}
 	Evaluator::save();
@@ -701,7 +703,7 @@ void Learner::selfplay_sampling_td() {
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
-			std::cout << next->move.toUSI() << std::endl;
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
 		}
 		const double s_V_t1 = LearnUtil::EvalToProb(tree.getRootPlayer().kyokumen.teban() ? Evaluator::evaluate(tree.getRootPlayer()) : -Evaluator::evaluate(tree.getRootPlayer()));
 		const double g_V_t1 = 1-s_V_t1;
