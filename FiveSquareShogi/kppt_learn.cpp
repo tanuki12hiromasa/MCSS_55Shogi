@@ -1,5 +1,6 @@
 ﻿#include "kppt_learn.h"
 #include <iostream>
+#include <fstream>
 
 namespace kppt {
 	void kppt_paramVector::EvalClamp(std::int16_t absmax) {
@@ -188,8 +189,41 @@ namespace kppt {
 		return *this;
 	}
 
+	void kppt_paramVector::save(const std::string& path) {
+		std::ofstream fs(path,std::ios::binary);
+		if (!fs) {
+			std::cerr << "error:file canot generate" << std::endl;
+			return;
+		}
+		for (auto it = (char*)KPP, end = (char*)KPP + sizeof(KPPEvalVectorFloat); it < end; it += (1 << 30)) {
+			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+			fs.write(it, size);
+		}
+		for (auto it = (char*)KKP, end = (char*)KKP + sizeof(KKPEvalVectorFloat); it < end; it += (1 << 30)) {
+			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+			fs.write(it, size);
+		}
+	}
+
+	void kppt_paramVector::load(const std::string& path) {
+		std::ifstream fs(path, std::ios::binary);
+		if (!fs) {
+			std::cerr << "error:file canot open" << std::endl;
+			return;
+		}
+		for (auto it = (char*)KPP, end = (char*)KPP + sizeof(KPPEvalVectorFloat); it < end; it += (1 << 30)) {
+			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+			fs.read(it, size);
+		}
+		for (auto it = (char*)KKP, end = (char*)KKP + sizeof(KKPEvalVectorFloat); it < end; it += (1 << 30)) {
+			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+			fs.read(it, size);
+		}
+	}
+
 	void kppt_paramVector::showLearnVec_kppt(const double displaymin)const {
 		using namespace std;
+		cout << "show kpp" << endl;
 		for (int i = 0; i < kppt::SquareNum; i++) {
 			for (int j = 0; j < kppt::fe_end; j++) {
 				for (int k = 0; k < j; k++) {
@@ -205,8 +239,9 @@ namespace kppt {
 
 	void kppt_paramVector::showLearnVec_kkpt(const double displaymin)const {
 		using namespace std;
+		cout << "show kkp" << endl;
 		for (int i = 0; i < kppt::SquareNum; i++) {
-			for (int j = 0; j < i; j++) {
+			for (int j = 0; j < kppt::SquareNum; j++) {
 				for (int k = 0; k < kppt::fe_end; k++) {
 					if (std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 0)]) > displaymin || std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 1)]) > displaymin) {
 						cout << "kkp " << i << " " << j << " " << k << ": ";

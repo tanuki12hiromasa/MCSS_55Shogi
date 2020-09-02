@@ -516,7 +516,7 @@ void Learner::selfplay_sampling_regression() {
 
 	LearnVec dw_sWin;
 	LearnVec dw_gWin;
-	std::cout << "self-play sampling learning \n";
+	std::cout << "self-play sampling regression learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
 	bool sentewin = true;
@@ -555,7 +555,7 @@ void Learner::selfplay_sampling_regression() {
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
-			std::cout << next->move.toUSI() << std::endl;
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}
