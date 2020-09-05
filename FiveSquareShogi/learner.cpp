@@ -48,6 +48,7 @@ void Learner::execute() {
 			//更新したパラメータを保存
 			//saveparam [保存先フォルダ]
 			if (tokens.size() > 2) Evaluator::setpath_input(usiin.substr(10));
+			dw.updateEval();
 			Evaluator::save();
 			std::cout << "saveparam done." << std::endl;
 		}
@@ -55,6 +56,12 @@ void Learner::execute() {
 			//rlearnを連続で行う 
 			//crl 棋譜.sfen
 			learner.consecutive_rl(usiin.substr(4));
+		}
+		else if (tokens[0] == "loadgrad") {
+			dw.load(tokens.size() > 1 ? tokens[1] : "learninggrad.bin");
+		}
+		else if (tokens[0] == "savegrad") {
+			dw.save(tokens.size() > 1 ? tokens[1] : "learninggrad.bin");
 		}
 		else if (tokens[0] == "selfplaylearn") {
 			//自己対局を行い、その棋譜データで学習を行うことを繰り返す
@@ -67,13 +74,13 @@ void Learner::execute() {
 					learner.selfplay_child_bootstrap();
 				}
 				else if (tokens[2] == "reg") {
-					learner.selfplay_sampling_regression();
+					learner.selfplay_sampling_regression(dw);
 				}
 				else if (tokens[2] == "pge") {
 					learner.selfplay_sampling_pge();
 				}
 				else if (tokens[2] == "td") {
-					learner.selfplay_sampling_td();
+					learner.selfplay_sampling_td(dw);
 				}
 				else if (tokens[2] == "btss") {
 					const int samplingnum = (tokens.size() > 3) ? std::stoi(tokens[3]) : 20;
@@ -510,7 +517,7 @@ void Learner::selfplay_child_bootstrap() {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::selfplay_sampling_regression() {
+void Learner::selfplay_sampling_regression(LearnVec& dw) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 
@@ -562,14 +569,12 @@ void Learner::selfplay_sampling_regression() {
 
 	if (sentewin) {
 		dw_sWin *= learning_rate_reg;
-		dw_sWin.updateEval();
+		dw += dw_sWin;
 	}
 	else {
 		dw_gWin *= learning_rate_reg;
-		dw_gWin.updateEval();
+		dw += dw_gWin;
 	}
-	Evaluator::save();
-
 	std::cout << "self-play learning finished" << std::endl;
 }
 
@@ -648,7 +653,7 @@ void Learner::selfplay_sampling_pge() {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::selfplay_sampling_td() {
+void Learner::selfplay_sampling_td(LearnVec& dw) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 	SearchNode::setTeval(T_selfplay);
@@ -714,9 +719,7 @@ void Learner::selfplay_sampling_td() {
 		std::cout << "gameend." << std::endl;
 	}
 	tdvec *= learning_rate_td;
-	tdvec.updateEval();
-	Evaluator::save();
-
+	dw += tdvec;
 	std::cout << "self-play learning finished" << std::endl;
 }
 

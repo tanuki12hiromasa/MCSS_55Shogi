@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "learn_util.h"
 #include "agent.h"
 
@@ -20,9 +20,9 @@ private:
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
 	void selfplay_simple_bootstrap();
 	void selfplay_child_bootstrap();
-	void selfplay_sampling_regression();
+	void selfplay_sampling_regression(LearnVec& dw);
 	void selfplay_sampling_pge();
-	void selfplay_sampling_td();
+	void selfplay_sampling_td(LearnVec& dw);
 	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
 	double T_search = 120;
