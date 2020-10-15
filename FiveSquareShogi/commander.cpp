@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "commander.h"
 #include "learn_util.h"
 #include "usi.h" 
@@ -103,7 +103,7 @@ Commander::~Commander() {
 
 void Commander::coutOption() {
 	using namespace std;
-	cout << "option name eval_folderpath type string default ./data/kppt_apery" << endl;
+	cout << "option name eval_folderpath type string default ./data/kppt" << endl;
 	cout << "option name leave_branchNode type check default false" << endl;
 	cout << "option name continuous_tree type check default true" << endl;
 	cout << "option name NumOfAgent type spin default 12 min 1 max 128" << endl;
@@ -140,7 +140,7 @@ void Commander::setOption(const std::vector<std::string>& token) {
 		else if (token[2] == "continuous_tree") {
 			continuousTree = (token[4] == "true");
 		}
-		else if (token[2] == "kppt_filepath") {
+		else if (token[2] == "eval_folderpath") {
 			//aperyのパラメータファイルの位置を指定する 空白文字がパスにあると駄目なのを何とかしたい?
 			Evaluator::setpath_input(token[4]);
 		}
@@ -307,7 +307,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 		int changecounter = 0;
 		int loopcounter = 0;
 		std::cout << "info string time:" << timelimit.first.count() << ", " << timelimit.second.count() << std::endl;
-		std::this_thread::sleep_for(searchtime / 8);
+		std::this_thread::sleep_for(1ms);
 		do {
 			loopcounter++;
 			constexpr auto sleeptime = 50ms;
@@ -327,6 +327,7 @@ void Commander::go(const std::vector<std::string>& tokens) {
 				pi_average = pi;
 				continuous_counter = 1;
 			}
+			recentBestNode = bestnode;
 			//即指しの条件を満たしたら指す
 			if (continuous_counter * sleeptime > std::max(timelimit.first / 2, time_quickbm_lower)) {
 				break;
@@ -343,7 +344,6 @@ void Commander::go(const std::vector<std::string>& tokens) {
 			if (std::chrono::system_clock::now() - starttime + sleeptime >= timelimit.second) {
 				break;
 			}
-			recentBestNode = bestnode;
 		} while (std::abs(root->eval) < SearchNode::getMateScoreBound());
 		if (provisonalBestMove == nullptr) provisonalBestMove = recentBestNode;
 #else //学習のために選択方策によりランダムに手を指してほしい時
