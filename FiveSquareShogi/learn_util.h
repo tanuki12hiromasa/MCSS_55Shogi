@@ -3,9 +3,13 @@
 #include "kppt_learn.h"
 #include "kkppt_learn.h"
 
-//using LearnVec = kppt::kppt_paramVector;
-using LearnVec = kkppt::kkppt_paramVector;
+#ifdef USE_KPPT
+using LearnVec = kppt::kppt_paramVector;
+#endif
 
+#ifdef USE_KKPPT
+using LearnVec = kkppt::kkppt_paramVector;
+#endif
 
 class LearnUtil {
 public:
