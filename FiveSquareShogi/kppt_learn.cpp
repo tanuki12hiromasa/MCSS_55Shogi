@@ -221,31 +221,31 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::showLearnVec_kppt(const double displaymin)const {
+	void kppt_paramVector::showLearnVec_kppt(const double displaymin,int isKPP)const {
 		using namespace std;
-		cout << "show kpp" << endl;
-		for (int i = 0; i < kppt::SquareNum; i++) {
-			for (int j = 0; j < kppt::fe_end; j++) {
-				for (int k = 0; k < j; k++) {
-					if (j == k)continue;
-					if (std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 0)]) > displaymin || std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 1)]) > displaymin) {
-						cout << "kpp " << i << " " << j << " " << k << ": ";
-						cout << KPP[kppt::kpptToLkpptnum(i, j, k, 0)] << " " << KPP[kppt::kpptToLkpptnum(i, j, k, 1)] << "\n";
+		if (isKPP) {
+			cout << "show kpp" << endl;
+			for (int i = 0; i < kppt::SquareNum; i++) {
+				for (int j = 0; j < kppt::fe_end; j++) {
+					for (int k = 0; k < j; k++) {
+						if (j == k)continue;
+						if (std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 0)]) > displaymin || std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 1)]) > displaymin) {
+							cout << "kpp " << i << " " << j << " " << k << ": ";
+							cout << KPP[kppt::kpptToLkpptnum(i, j, k, 0)] << " " << KPP[kppt::kpptToLkpptnum(i, j, k, 1)] << "\n";
+						}
 					}
 				}
 			}
 		}
-	}
-
-	void kppt_paramVector::showLearnVec_kkpt(const double displaymin)const {
-		using namespace std;
-		cout << "show kkp" << endl;
-		for (int i = 0; i < kppt::SquareNum; i++) {
-			for (int j = 0; j < kppt::SquareNum; j++) {
-				for (int k = 0; k < kppt::fe_end; k++) {
-					if (std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 0)]) > displaymin || std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 1)]) > displaymin) {
-						cout << "kkp " << i << " " << j << " " << k << ": ";
-						cout << KKP[kppt::kkptToLkkptnum(i, j, k, 0)] << " " << KKP[kppt::kkptToLkkptnum(i, j, k, 1)] << "\n";
+		else {
+			cout << "show kkp" << endl;
+			for (int i = 0; i < kppt::SquareNum; i++) {
+				for (int j = 0; j < kppt::SquareNum; j++) {
+					for (int k = 0; k < kppt::fe_end; k++) {
+						if (std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 0)]) > displaymin || std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 1)]) > displaymin) {
+							cout << "kkp " << i << " " << j << " " << k << ": ";
+							cout << KKP[kppt::kkptToLkkptnum(i, j, k, 0)] << " " << KKP[kppt::kkptToLkkptnum(i, j, k, 1)] << "\n";
+						}
 					}
 				}
 			}

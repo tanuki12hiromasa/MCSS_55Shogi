@@ -1,8 +1,11 @@
 ﻿#pragma once
 #include "agent.h"
 #include "kppt_learn.h"
+#include "kkppt_learn.h"
 
-using LearnVec = kppt::kppt_paramVector;
+//using LearnVec = kppt::kppt_paramVector;
+using LearnVec = kkppt::kkppt_paramVector;
+
 
 class LearnUtil {
 public:

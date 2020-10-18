@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "kppt_feature.h"
+#include "kkppt_feature.h"
 #include "player.h"
 
-namespace kppt {
-	using SearchPlayer = Player<kppt_feat, EvalSum>;
-	class kppt_evaluator {
+namespace kkppt {
+	using SearchPlayer = Player<kkppt_feat, EvalSum>;
+	class kkppt_evaluator {
 	public:
 		static void init();
 		static void save();
@@ -13,7 +13,7 @@ namespace kppt {
 
 		static void setpath_input(const std::string& path) { ifolderpath = path; }
 		static void setpath_output(const std::string& path) { ofolderpath = path; }
-		
+
 		static void genFirstEvalFile(const std::string& folderpath);
 	private:
 		static std::string ifolderpath;

@@ -18,7 +18,7 @@ void coutKPP() {
 	for (unsigned sk = 0; sk < kppt::SquareNum; sk++) {
 		for (unsigned gk = 0; gk < kppt::SquareNum; gk++) {
 			for (unsigned p = 0; p < kppt::fe_end; p++) {
-				auto& vec = kppt::KPP[sk][gk][p];
+				auto& vec = kppt::KKP[sk][gk][p];
 				if (vec[0] != 0 || vec[1] != 0) {
 					std::cout << sk << " " << gk << " " << p << ": " << vec[0] << " " << vec[1] << "\n";
 				}
@@ -33,6 +33,24 @@ void ShogiTest::test() {
 	BBkiki::init();
 	Evaluator::init();
 	std::cout << "initialized." << std::endl;
+#if 0
+	{
+		Learner lrn;
+		LearnVec v;
+		v.KKP[15] = 12.35;
+		v.KPP[66] = -9.2;
+		v.showLearnVec_kkpt(0.1);
+		v.showLearnVec_kppt(0.1);
+		v.save("test.bin");
+		LearnVec e;
+		e.load("test.bin");
+		e.showLearnVec_kkpt(0.1);
+		e.showLearnVec_kppt(0.1);
+		e += v;
+		e.showLearnVec_kkpt(0.1);
+		e.showLearnVec_kppt(0.1);
+	}
+#endif
 	coutKPP();
 #if 0
 	checkGenMove("position startpos");

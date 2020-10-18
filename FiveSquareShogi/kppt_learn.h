@@ -45,8 +45,7 @@ namespace kppt {
 		kppt_paramVector& operator+=(const fvpair& rhs);
 		kppt_paramVector& operator*=(const double c);
 
-		void showLearnVec_kppt(double displaymin)const;
-		void showLearnVec_kkpt(double displaymin)const;
+		void showLearnVec_kppt(double displaymin,int isKPP)const;
 	
 		friend class kppt_learn;
 		friend class ShogiTest;

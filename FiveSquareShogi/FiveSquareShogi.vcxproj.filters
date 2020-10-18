@@ -37,6 +37,9 @@
     <Filter Include="ソース ファイル\learn">
       <UniqueIdentifier>{9bf3ff52-092f-4fae-aa93-86e420287b13}</UniqueIdentifier>
     </Filter>
+    <Filter Include="kkppt">
+      <UniqueIdentifier>{d13a40e6-623f-41e8-9845-156e4386cda6}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -102,6 +105,15 @@
     <ClCompile Include="learner.cpp">
       <Filter>ソース ファイル\learn</Filter>
     </ClCompile>
+    <ClCompile Include="kkppt_feature.cpp">
+      <Filter>kkppt</Filter>
+    </ClCompile>
+    <ClCompile Include="kkppt_evaluate.cpp">
+      <Filter>kkppt</Filter>
+    </ClCompile>
+    <ClCompile Include="kkppt_learn.cpp">
+      <Filter>kkppt</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
@@ -152,9 +164,6 @@
     <ClInclude Include="evaluator.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
-    <ClInclude Include="feature.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
     <ClInclude Include="time_property.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
@@ -181,6 +190,18 @@
     </ClInclude>
     <ClInclude Include="learner.h">
       <Filter>ヘッダー ファイル\learn</Filter>
+    </ClInclude>
+    <ClInclude Include="kkppt_param.h">
+      <Filter>kkppt</Filter>
+    </ClInclude>
+    <ClInclude Include="kkppt_evaluate.h">
+      <Filter>kkppt</Filter>
+    </ClInclude>
+    <ClInclude Include="kkppt_feature.h">
+      <Filter>kkppt</Filter>
+    </ClInclude>
+    <ClInclude Include="kkppt_learn.h">
+      <Filter>kkppt</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
