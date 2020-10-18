@@ -6,8 +6,8 @@
 
 namespace kkppt {
 
-	std::string kkppt_evaluator::ifolderpath = "data/learn/kppt";
-	std::string kkppt_evaluator::ofolderpath = "data/learn/kppt";
+	std::string kkppt_evaluator::ifolderpath = "data/kkppt";
+	std::string kkppt_evaluator::ofolderpath = "data/learn/kkppt";
 
 	void kkppt_evaluator::init() {
 		kkppt_feat::init(ifolderpath);
@@ -33,11 +33,12 @@ namespace kkppt {
 	}
 
 	void kkppt_evaluator::genFirstEvalFile(const std::string& folderpath) {
+		std::filesystem::create_directories(folderpath);
 		auto* KKPP = new KKPPEvalElement2[SquareNum];
 		memset(KKPP, 0, sizeof(KKPPEvalElement2) * (size_t)SquareNum);
 		std::ofstream fs(folderpath + "/KKPP.bin", std::ios::binary);
 		if (!fs) {
-			std::cerr << "error:file(KPP.bin) cannot make" << std::endl;
+			std::cerr << "error:file(KKPP.bin) cannot make" << std::endl;
 			return;
 		}
 		fs.write(reinterpret_cast<char*>(KKPP), sizeof(KKPPEvalElement3));
