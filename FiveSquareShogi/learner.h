@@ -18,10 +18,11 @@ private:
 
 	void consecutive_rl(const std::string& sfenfile);
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
-	void selfplay_simple_bootstrap();
-	void selfplay_child_bootstrap();
+	void selfplay_rootstrap(LearnVec& dw);
+	void selfplay_bootstrap(LearnVec& dw);
+	void selfplay_child_bootstrap(LearnVec& dw);
 	void selfplay_sampling_regression(LearnVec& dw);
-	void selfplay_sampling_pge();
+	void selfplay_sampling_pge(LearnVec& dw);
 	void selfplay_sampling_td(LearnVec& dw);
 	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
