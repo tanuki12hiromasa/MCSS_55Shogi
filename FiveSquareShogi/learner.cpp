@@ -461,8 +461,8 @@ void Learner::selfplay_bootstrap(LearnVec& dw) {
 			if (std::abs(root->eval) >= SearchNode::getMateScoreBound()) {
 				const auto& player = tree.getRootPlayer();
 				const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
-				double c = LearnUtil::probT * sigH * (1 - sigH);
-				c *= learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval));
+				const double c = -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) 
+									* LearnUtil::probT * sigH * (1 - sigH);
 				dw.addGrad(c, player);
 				break;
 			}
@@ -472,8 +472,8 @@ void Learner::selfplay_bootstrap(LearnVec& dw) {
 				SearchNode* node = root;
 				while (!node->isLeaf()) {
 					const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
-					double c = LearnUtil::probT * sigH * (1 - sigH);
-					c *= learning_rate_bts * (sigH - LearnUtil::EvalToProb(node->eval));
+					const double c = -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) 
+										* LearnUtil::probT * sigH * (1 - sigH);
 					dw.addGrad(c, player);
 					node = LearnUtil::choiceBestChild(node);
 					if (node->children.empty()) break;

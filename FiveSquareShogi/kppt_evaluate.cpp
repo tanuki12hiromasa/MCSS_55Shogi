@@ -2,6 +2,7 @@
 #include "kppt_evaluate.h"
 #include <fstream>
 #include <iostream>
+#include <filesystem>
 
 namespace kppt {
 
@@ -31,11 +32,11 @@ namespace kppt {
 	}
 
 	void kppt_evaluator::genFirstEvalFile(const std::string& folderpath) {
+		std::filesystem::create_directories(folderpath);
 		auto* KPP = new KPPEvalElementType1[SquareNum];
 		auto* KKP = new KKPEvalElementType1[SquareNum];
 		memset(KPP, 0, sizeof(KPPEvalElementType1) * (size_t)SquareNum);
 		memset(KKP, 0, sizeof(KKPEvalElementType1) * (size_t)SquareNum);
-
 		{
 			std::ofstream fs(folderpath + "/KPP.bin", std::ios::binary);
 			if (!fs) {
