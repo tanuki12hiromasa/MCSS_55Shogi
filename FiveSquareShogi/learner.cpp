@@ -847,7 +847,7 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
 			tree.makeNewTree(usi::split("position startpos", ' '));
-			const int movesnum = 10 + 6 * random(engine);
+			const int movesnum = 6 + 10 * random(engine);
 			//ランダム局面を生成
 			for (int i = 0; i < movesnum; i++) {
 				const auto root = tree.getRoot();
@@ -858,6 +858,13 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				const int randomchild = moves.size() * random(engine);
 				tree.proceed(root->children[randomchild]);
 			}
+			//rootが詰みの場合やり直し
+			{
+				const auto root = tree.getRoot();
+				const auto& player = tree.getRootPlayer();
+				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
+				if (moves.empty()) { counter_batch--; goto delTree; }
+			}
 			//探索
 			search(tree);
 			//勾配計算
@@ -865,7 +872,7 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				const auto& rootplayer = tree.getRootPlayer();
 				const auto root = tree.getRoot();
 				const auto pl = LearnUtil::getPrincipalLeaf(root);
-				if (pl->isTerminal()) {
+				if (pl==nullptr||pl->isTerminal()) {
 					counter_batch--; goto delTree;
 				}
 				const double H = Evaluator::evaluate(rootplayer);
