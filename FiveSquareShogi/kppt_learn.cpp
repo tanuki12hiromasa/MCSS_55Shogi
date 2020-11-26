@@ -103,14 +103,13 @@ namespace kppt {
 
 				kpp[kpptToLkpptnum(skpos, k0, l0, 0)] += bammenscalar;
 				kpp[kpptToLkpptnum(skpos, k0, l0, 1)] += tebanscalar;
-				
 				kpp[kpptToLkpptnum(invgkpos, k1, l1, 0)] -= bammenscalar;
 				kpp[kpptToLkpptnum(invgkpos, k1, l1, 1)] += tebanscalar;
 			}
 			kkp[kkptToLkkptnum(skpos, gkpos, k0, 0)] += bammenscalar;
 			kkp[kkptToLkkptnum(skpos, gkpos, k0, 1)] += tebanscalar;
 			kkp[kkptToLkkptnum(invgkpos, invskpos, k1, 0)] -= bammenscalar;
-			kkp[kkptToLkkptnum(invgkpos, invskpos, k1, 1)] -= tebanscalar;
+			kkp[kkptToLkkptnum(invgkpos, invskpos, k1, 1)] += tebanscalar;
 		}
 	}
 
