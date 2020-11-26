@@ -1,6 +1,7 @@
 ﻿#include "learner.h"
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include "usi.h"
 
 void Learner::execute() {
@@ -52,6 +53,9 @@ void Learner::execute() {
 			Evaluator::save();
 			std::cout << "saveparam done." << std::endl;
 		}
+		else if (tokens[0] == "printparam") {
+			Evaluator::print((tokens.size() > 1) ? std::stoi(tokens[1]) : 0);
+		}
 		else if (tokens[0] == "crl") {
 			//rlearnを連続で行う 
 			//crl 棋譜.sfen
@@ -97,6 +101,9 @@ void Learner::execute() {
 			else {
 				learner.selfplay_learn(tokens);
 			}
+		}
+		else if (tokens[0] == "randomposlearn") {
+			learner.rootstrap_randomstart(std::stoi(tokens[1]), std::stoi(tokens[2]));
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -386,7 +393,7 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 					winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
 					break;
 				}
-				const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+				const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 				tree.proceed(next);
 				history.push_back(next->move);
 				std::cout << next->move.toUSI() << std::endl;
@@ -437,7 +444,7 @@ void Learner::selfplay_rootstrap(LearnVec& dw) {
 				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << std::endl;
@@ -542,7 +549,7 @@ void Learner::selfplay_child_bootstrap(LearnVec& dw) {
 				dw += learning_rate_pp * rootVec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
@@ -593,7 +600,7 @@ void Learner::selfplay_sampling_regression(LearnVec& dw) {
 				dw_sWin += (0 - Pwin) * Pwin_grad;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -672,7 +679,7 @@ void Learner::selfplay_sampling_pge(LearnVec& dw) {
 				dw += learning_rate_pge / LearnUtil::pTb * vec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_search, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_search, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -735,7 +742,7 @@ void Learner::selfplay_sampling_td(LearnVec& dw) {
 				g_V_t = sigV;
 			}
 			
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -791,7 +798,7 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 						const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
 						const double c = -(sigH - sigE) * LearnUtil::probT * sigH * (1 - sigH);
 						vec.addGrad(c / node->mass, player);
-						node = LearnUtil::choiceChildRandom(node, T, random(engine));
+						node = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
 						if (!node)break;
 						player.proceed(node->move);
 					}
@@ -799,7 +806,7 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 				dw += (learning_rate_bts_sampling / samplingnum) * vec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
@@ -813,3 +820,81 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
+void Learner::rootstrap_randomstart(const int batch,const int itr) {
+	std::cout << "start randompos rootstarp learn\n";
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	const std::string tempinfo = "./.learninfo";
+	const std::string tempgrad = "./.learngradient";
+	int counter_itr = 0, counter_batch = 0;
+	const double learn_rate_0 = 0.01;
+	const double learn_rate_r = 0.5;
+	LearnVec dw;
+	//保険セーブが残っているなら再開
+	{
+		std::ifstream fs(tempinfo);  
+		if (fs) {
+			std::string buff;
+			std::getline(fs, buff);
+			counter_itr = std::stoi(buff);
+			std::getline(fs, buff);
+			counter_batch = std::stoi(buff);
+			if (counter_batch >= batch) { counter_itr++; counter_batch = 0; }
+		}
+	}
+	SearchTree tree;
+	for (; counter_itr < itr; counter_itr++) {
+		for (; counter_batch < batch; counter_batch++) {
+			tree.makeNewTree(usi::split("position startpos", ' '));
+			//ランダム局面を生成
+			for (int i = 0; i < 16; i++) {
+				const auto root = tree.getRoot();
+				const auto& player = tree.getRootPlayer();
+				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
+				root->addChildren(moves);
+				const int randomchild = moves.size() * random(engine);
+			}
+			//探索
+			search(tree);
+			//勾配計算
+			{
+				const auto& rootplayer = tree.getRootPlayer();
+				const auto root = tree.getRoot();
+				const auto pl = LearnUtil::getPrincipalLeaf(root);
+				if (pl->isTerminal()) {
+					counter_batch--; continue;
+				}
+				const double H = Evaluator::evaluate(rootplayer);
+				const double sigH = LearnUtil::EvalToProb(H);
+				const double c = learn_rate_0 * std::pow(learn_rate_r, counter_itr) 
+									* - (sigH - LearnUtil::EvalToProb(root->eval))
+									* LearnUtil::probT * sigH * (1 - sigH);
+				dw.addGrad(c, rootplayer);
+				std::cout << H << "," << root->eval << ":" << tree.getRootPlayer().kyokumen.toSfen() << "\n";
+			}
+			//保険セーブ
+			{
+				dw.save(tempgrad);
+				std::ofstream fs(tempinfo);
+				if (fs) {
+					fs << counter_itr << "\n" << counter_batch << "\n";
+				}
+			}
+			//ノード消去
+			{
+				auto root = tree.getGameRoot();
+				root->deleteTree();
+				delete root;
+			}
+		}
+		//評価関数に勾配を反映
+		dw.updateEval();
+		Evaluator::save();
+		dw.save(tempgrad);
+		counter_batch = 0;
+	}
+	//保険セーブ消去
+	std::filesystem::remove(tempinfo);
+	std::filesystem::remove(tempgrad);
+	std::cout << "learning end." << std::endl;
+}

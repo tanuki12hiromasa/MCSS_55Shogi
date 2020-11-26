@@ -3,7 +3,7 @@
 
 double LearnUtil::pTb = 0.1;//評価関数をシグモイド関数に写像した場合の方策の温度は、(元の温度)*(写像先の標準的な評価値差)/(元の標準的な評価値差)で求められる。
 
-SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const double T, double pip) {
+SearchNode* LearnUtil::choicePolicyRandomChild(const SearchNode* const root, const double T, double pip) {
 	using dn = std::pair<double, SearchNode*>;
 	double CE = std::numeric_limits<double>::max();
 	if (root->isLeaf()) return nullptr;
@@ -32,6 +32,11 @@ SearchNode* LearnUtil::choiceChildRandom(const SearchNode* const root, const dou
 	return evals.front().second;
 }
 
+SearchNode* LearnUtil::choiceRandomChild(const SearchNode* const root, const double pip) {
+	const int index = std::clamp(static_cast<int>(root->children.size() * pip), 0, (int)root->children.size() - 1);
+	return root->children[index];
+}
+
 SearchNode* LearnUtil::choiceBestChild(const SearchNode* const root) {
 	double min = std::numeric_limits<double>::max();
 	SearchNode* best = nullptr;
@@ -43,6 +48,14 @@ SearchNode* LearnUtil::choiceBestChild(const SearchNode* const root) {
 		}
 	}
 	return best;
+}
+
+SearchNode* LearnUtil::getPrincipalLeaf(const SearchNode* const root) {
+	const auto child = choiceBestChild(root);
+	if (child->isTerminal() || child->isLeaf())
+		return child;
+	else 
+		return getPrincipalLeaf(child);
 }
 
 double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, double beta, SearchPlayer& bestplayer) {
@@ -122,7 +135,7 @@ LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& ro
 		double Peval_prev = (teban == rootplayer.kyokumen.teban()) ? EvalToProb(node->eval) : (1 - EvalToProb(node->eval));
 		SearchPlayer player = rootplayer;
 		while (!node->isLeaf()) {
-			auto next = choiceChildRandom(node, T, random(engine));
+			auto next = choicePolicyRandomChild(node, T, random(engine));
 			if (next == nullptr)break;
 			node = next;
 			player.proceed(node->move);
@@ -171,13 +184,13 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 		while (!node->isLeaf()) {
 			if (player.kyokumen.teban() == teban) {
 				const double sigV = EvalToProb(node->eval);
-				node = choiceChildRandom(node, T, random(engine));
+				node = choicePolicyRandomChild(node, T, random(engine));
 				player.proceed(node->move);
 				const double sigQ = 1 - EvalToProb(node->eval);
 				c *= (sigQ - sigV) / pTb + 1;
 			}
 			else {
-				node = choiceChildRandom(node, T, random(engine));
+				node = choicePolicyRandomChild(node, T, random(engine));
 				player.proceed(node->move);
 			}
 		}
@@ -217,7 +230,7 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 				vec.addGrad(c, player);
 				break;
 			}
-			SearchNode* enode = choiceChildRandom(node, T, random(engine));
+			SearchNode* enode = choicePolicyRandomChild(node, T, random(engine));
 			if (!enode || enode->children.empty() || enode->isLeaf()) {
 				const double sigH = EvalToProb(node->eval);
 				c *= probT * sigH * (1 - sigH);
@@ -228,7 +241,7 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 			const double Q = 1 - EvalToProb(enode->eval);
 			c *= (Q - V) / pTb + 1;
 			const double fnodeeval = node->eval;
-			node = choiceChildRandom(enode, T, random(engine));
+			node = choicePolicyRandomChild(enode, T, random(engine));
 			if (!node) {
 				const double sigH = EvalToProb(fnodeeval);
 				c *= probT * sigH * (1 - sigH);
@@ -258,7 +271,7 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 		SearchPlayer player = rootplayer;
 		double c = 1;
 		while (true) {
-			SearchNode* fnode = choiceChildRandom(node, T, random(engine));
+			SearchNode* fnode = choicePolicyRandomChild(node, T, random(engine));
 			if (!fnode) break;
 			player.proceed(fnode->move);
 			if (fnode->children.empty() || fnode->isLeaf()) {
@@ -267,7 +280,7 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 				vec.addGrad(c, player);
 				break;
 			}
-			node = choiceChildRandom(fnode, T, random(engine));
+			node = choicePolicyRandomChild(fnode, T, random(engine));
 			if (!node || node->children.empty() || node->isLeaf()) {
 				const double sigH = EvalToProb(fnode->eval);
 				c *= probT * sigH * (1 - sigH);

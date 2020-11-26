@@ -365,7 +365,7 @@ std::pair<std::chrono::milliseconds, std::chrono::milliseconds> Commander::decid
 	using namespace std::chrono_literals;
 	switch (time.rule) {
 		case TimeProperty::TimeRule::byoyomi: {
-			const auto standerd_time = std::min(std::max(time.left / std::max(estimate_movesnum - tree.getMoveNum(), 5), time.added), time_standard_upper) - time_overhead;
+			const auto standerd_time = std::min(std::max(time.left / std::max(estimate_movesnum - tree.getMoveNum(), 20), time.added), time_standard_upper) - time_overhead;
 			const auto limit_time = time.left + time.added - time_overhead;
 			return std::make_pair(standerd_time, limit_time);
 		}

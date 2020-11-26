@@ -26,7 +26,7 @@ private:
 	void selfplay_sampling_td(LearnVec& dw);
 	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
-	double T_search = 120;
+	void rootstrap_randomstart(int batch,int itr);
 	double T_selfplay = 120;
 	std::chrono::milliseconds searchtime{ 1000 };
 	int agentnum = 8;

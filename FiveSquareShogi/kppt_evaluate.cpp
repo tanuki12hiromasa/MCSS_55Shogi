@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "kppt_evaluate.h"
 #include <fstream>
 #include <iostream>
@@ -6,7 +6,7 @@
 
 namespace kppt {
 
-	std::string kppt_evaluator::ifolderpath = "data/kppt";
+	std::string kppt_evaluator::ifolderpath = "data/learn/kppt";
 	std::string kppt_evaluator::ofolderpath = "data/learn/kppt";
 
 	void kppt_evaluator::init() {
@@ -59,6 +59,33 @@ namespace kppt {
 			for (auto it = (char*)KKP; it < end; it += (1 << 30)) {
 				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
 				fs.write(it, size);
+			}
+		}
+	}
+
+	void kppt_evaluator::print(int iskpp) {
+		using namespace std;
+		if (iskpp) {
+			cout << "show kpp" << endl;
+			for (int i = 0; i < kppt::SquareNum; i++) {
+				for (int j = 0; j < kppt::fe_end; j++) {
+					for (int k = 0; k < j; k++) {
+						if (j == k)continue;
+						if(KPP[i][j][k][0]!=0|| KPP[i][j][k][1]!=0)
+							cout << i << "," << j << "," << k << ": " << KPP[i][j][k][0] << " " << KPP[i][j][k][1] << "\n";
+					}
+				}
+			}
+		}
+		else {
+			cout << "show kkp" << endl;
+			for (int i = 0; i < kppt::SquareNum; i++) {
+				for (int j = 0; j < kppt::SquareNum; j++) {
+					for (int k = 0; k < kppt::fe_end; k++) {
+						if (KKP[i][j][k][0] != 0 || KKP[i][j][k][1] != 0)
+							cout << i << "," << j << "," << k << ": " << KKP[i][j][k][0] << " " << KKP[i][j][k][1] << "\n";
+					}
+				}
 			}
 		}
 	}
