@@ -103,6 +103,7 @@ void Learner::execute() {
 			}
 		}
 		else if (tokens[0] == "randomposlearn") {
+			if (tokens.size() < 2) { std::cout << "randomposlearn <batchsize> <itrsize>" << std::endl; continue; }
 			learner.rootstrap_randomstart(std::stoi(tokens[1]), std::stoi(tokens[2]));
 		}
 		else if (tokens[0] == "quit") {
@@ -846,13 +847,16 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
 			tree.makeNewTree(usi::split("position startpos", ' '));
+			const int movesnum = 10 + 6 * random(engine);
 			//ランダム局面を生成
-			for (int i = 0; i < 16; i++) {
+			for (int i = 0; i < movesnum; i++) {
 				const auto root = tree.getRoot();
 				const auto& player = tree.getRootPlayer();
 				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
+				if (moves.empty()) { counter_batch--; goto delTree; }
 				root->addChildren(moves);
 				const int randomchild = moves.size() * random(engine);
+				tree.proceed(root->children[randomchild]);
 			}
 			//探索
 			search(tree);
@@ -862,7 +866,7 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				const auto root = tree.getRoot();
 				const auto pl = LearnUtil::getPrincipalLeaf(root);
 				if (pl->isTerminal()) {
-					counter_batch--; continue;
+					counter_batch--; goto delTree;
 				}
 				const double H = Evaluator::evaluate(rootplayer);
 				const double sigH = LearnUtil::EvalToProb(H);
@@ -870,9 +874,10 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 									* - (sigH - LearnUtil::EvalToProb(root->eval))
 									* LearnUtil::probT * sigH * (1 - sigH);
 				dw.addGrad(c, rootplayer);
-				std::cout << H << "," << root->eval << ":" << tree.getRootPlayer().kyokumen.toSfen() << "\n";
+				std::cout << counter_itr << "," << counter_batch << ": " << H << " -> " << root->eval << " (" << tree.getRootPlayer().kyokumen.toSfen() << ")\n";
 			}
 			//保険セーブ
+			delTree:
 			{
 				dw.save(tempgrad);
 				std::ofstream fs(tempinfo);
