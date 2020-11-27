@@ -84,6 +84,19 @@ namespace kppt {
 		}
 	}
 
+	inline void kpp_addGrad(EvalVectorFloat* const kpp, const int kpos, const int k, const int l,const float bg,const float tg) {
+		kpp[kpptToLkpptnum(kpos, k, l, 0)] += bg;
+		kpp[kpptToLkpptnum(kpos, k, l, 1)] += tg;
+		kpp[kpptToLkpptnum(koma::mirrorX(kpos), mirror((EvalIndex)k), mirror((EvalIndex)l), 0)] += bg;
+		kpp[kpptToLkpptnum(koma::mirrorX(kpos), mirror((EvalIndex)k), mirror((EvalIndex)l), 1)] += tg;
+	}
+	inline void kkp_addGrad(EvalVectorFloat* const kkp, const int skpos, const int gkpos, const int k, const float bg, const float tg) {
+		kkp[kkptToLkkptnum(skpos, gkpos, k, 0)] += bg;
+		kkp[kkptToLkkptnum(skpos, gkpos, k, 1)] += tg;
+		kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 0)] += bg;
+		kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 1)] += tg;
+	}
+
 	void kppt_paramVector::addGrad(const float scalar,const SearchPlayer& player) {
 		if (std::abs(scalar) < 0.00000001f) return;
 		EvalVectorFloat* const kpp = KPP;
@@ -101,15 +114,11 @@ namespace kppt {
 				const int l0 = player.feature.idlist.list0[j];
 				const int l1 = player.feature.idlist.list1[j];
 
-				kpp[kpptToLkpptnum(skpos, k0, l0, 0)] += bammenscalar;
-				kpp[kpptToLkpptnum(skpos, k0, l0, 1)] += tebanscalar;
-				kpp[kpptToLkpptnum(invgkpos, k1, l1, 0)] -= bammenscalar;
-				kpp[kpptToLkpptnum(invgkpos, k1, l1, 1)] += tebanscalar;
+				kpp_addGrad(kpp, skpos, k0, l0, bammenscalar, tebanscalar);
+				kpp_addGrad(kpp, invgkpos, k1, l1, -bammenscalar, tebanscalar);
 			}
-			kkp[kkptToLkkptnum(skpos, gkpos, k0, 0)] += bammenscalar;
-			kkp[kkptToLkkptnum(skpos, gkpos, k0, 1)] += tebanscalar;
-			kkp[kkptToLkkptnum(invgkpos, invskpos, k1, 0)] -= bammenscalar;
-			kkp[kkptToLkkptnum(invgkpos, invskpos, k1, 1)] += tebanscalar;
+			kkp_addGrad(kkp, skpos, gkpos, k0, bammenscalar, tebanscalar);
+			kkp_addGrad(kkp, invgkpos, invskpos, k1, -bammenscalar, -tebanscalar);
 		}
 	}
 

@@ -865,23 +865,31 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
 				if (moves.empty()) { counter_batch--; goto delTree; }
 			}
+			while (tree.getRoot()!=nullptr) {
 			//探索
-			search(tree);
-			//勾配計算
-			{
-				const auto& rootplayer = tree.getRootPlayer();
+				search(tree);
 				const auto root = tree.getRoot();
-				const auto pl = LearnUtil::getPrincipalLeaf(root);
-				if (pl==nullptr||pl->isTerminal()) {
-					counter_batch--; goto delTree;
+				//勾配計算
+				{
+					const auto& rootplayer = tree.getRootPlayer();
+					const auto pl = LearnUtil::getPrincipalLeaf(root);
+					if (pl==nullptr||pl->isRepetition()) {
+						break;
+					}
+					const double H = Evaluator::evaluate(rootplayer);
+					const double sigH = LearnUtil::EvalToProb(H);
+					const double c = learn_rate_0 * std::pow(learn_rate_r, counter_itr) 
+										* - (sigH - LearnUtil::EvalToProb(root->eval))
+										* LearnUtil::probT * sigH * (1 - sigH);
+					dw.addGrad(c, rootplayer);
+					std::cout << counter_itr << "," << counter_batch << ": " << H << " -> " << root->eval << " (" << tree.getRootPlayer().kyokumen.toSfen() << ")\n";
+					if (pl->isTerminal()) {
+						break;
+					}
 				}
-				const double H = Evaluator::evaluate(rootplayer);
-				const double sigH = LearnUtil::EvalToProb(H);
-				const double c = learn_rate_0 * std::pow(learn_rate_r, counter_itr) 
-									* - (sigH - LearnUtil::EvalToProb(root->eval))
-									* LearnUtil::probT * sigH * (1 - sigH);
-				dw.addGrad(c, rootplayer);
-				std::cout << counter_itr << "," << counter_batch << ": " << H << " -> " << root->eval << " (" << tree.getRootPlayer().kyokumen.toSfen() << ")\n";
+				const auto bestchild = LearnUtil::choiceBestChild(root);
+				tree.proceed(bestchild);
+				tree.deleteBranch(root, { bestchild });
 			}
 			//保険セーブ
 			delTree:

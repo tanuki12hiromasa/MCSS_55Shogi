@@ -68,6 +68,7 @@ public:
 	std::int32_t getOriginEval()const { return origin_eval; }
 	bool isLeaf()const { const auto s = status.load(); return s == State::N || s == State::iE; }
 	bool isTerminal()const { return status == State::T || status == State::R; }
+	bool isRepetition()const { return status == State::R; }
 	bool isSearchable()const { const auto s = status.load(); return s == State::N || s == State::E; }
 	double getTs(const double baseT)const;
 	double getEs()const;
