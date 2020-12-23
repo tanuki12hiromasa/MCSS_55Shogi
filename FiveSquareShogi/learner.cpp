@@ -104,7 +104,7 @@ void Learner::execute() {
 		}
 		else if (tokens[0] == "randomposlearn") {
 			if (tokens.size() < 2) { std::cout << "randomposlearn <batchsize> <itrsize>" << std::endl; continue; }
-			learner.rootstrap_randomstart(std::stoi(tokens[1]), std::stoi(tokens[2]));
+			learner.learn_start_by_randompos(std::stoi(tokens[1]), std::stoi(tokens[2]));
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -821,7 +821,7 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::rootstrap_randomstart(const int batch,const int itr) {
+void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::cout << "start randompos rootstarp learn\n";
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
@@ -846,6 +846,9 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 	SearchTree tree;
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
+			std::cout << "(" << counter_itr << "," << counter_batch << ")\n";
+			LearnMethod* method = new SamplingBTS(dw, 0.001, 10000, 120);
+			
 			tree.makeNewTree(usi::split("position startpos", ' '));
 			const int movesnum = 6 + 10 * random(engine);
 			//ランダム局面を生成
@@ -866,27 +869,29 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				if (moves.empty()) { counter_batch--; goto delTree; }
 			}
 			while (tree.getRoot()!=nullptr) {
-			//探索
-				search(tree);
+				//探索
 				const auto root = tree.getRoot();
-				//勾配計算
-				{
-					const auto& rootplayer = tree.getRootPlayer();
-					const auto pl = LearnUtil::getPrincipalLeaf(root);
-					if (pl==nullptr||pl->isRepetition()) {
-						break;
-					}
-					const double H = Evaluator::evaluate(rootplayer);
-					const double sigH = LearnUtil::EvalToProb(H);
-					const double c = learn_rate_0 * std::pow(learn_rate_r, counter_itr) 
-										* - (sigH - LearnUtil::EvalToProb(root->eval))
-										* LearnUtil::probT * sigH * (1 - sigH);
-					dw.addGrad(c, rootplayer);
-					std::cout << counter_itr << "," << counter_batch << ": " << H << " -> " << root->eval << " (" << tree.getRootPlayer().kyokumen.toSfen() << ")\n";
-					if (pl->isTerminal()) {
-						break;
-					}
+				const auto& rootplayer = tree.getRootPlayer();
+				std::cout << root->move.toUSI() << " [" << rootplayer.kyokumen.toSfen() << "] ";
+				search(tree);
+
+				//ゲームが終了しているか調べる
+				const auto pl = LearnUtil::getPrincipalLeaf(root);
+				if (pl==nullptr) {
+					break;
 				}
+				if (pl->isRepetition()) {
+					method->fin(root, rootplayer, GameResult::Draw);
+					break;
+				}
+				if (pl->isTerminal()) {
+					method->fin(root, rootplayer, GameResult::SenteWin);//resultには結果を入れる (要実装)
+					break;
+				}
+
+				//学習
+				method->update(root, rootplayer);
+				
 				const auto bestchild = LearnUtil::choiceBestChild(root);
 				tree.proceed(bestchild);
 				tree.deleteBranch(root, { bestchild });
@@ -906,6 +911,8 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 				root->deleteTree();
 				delete root;
 			}
+			delete method;
+			std::cout << "\n";
 		}
 		//評価関数に勾配を反映
 		dw.updateEval();
@@ -918,3 +925,4 @@ void Learner::rootstrap_randomstart(const int batch,const int itr) {
 	std::filesystem::remove(tempgrad);
 	std::cout << "learning end." << std::endl;
 }
+

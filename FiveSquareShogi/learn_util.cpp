@@ -300,3 +300,11 @@ LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer&
 double LearnUtil::EvalToProb(const double eval) {
 	return 1.0 / (1.0 + std::exp(-eval / probT));
 }
+
+double LearnUtil::BackProb(const SearchNode* const parent, const SearchNode* const child, const double T) {
+	double Z = 0;
+	for (const auto& c : parent->children) {
+		Z += std::exp(-(c->eval + parent->eval) / T);
+	}
+	return std::exp(-(child->eval + parent->eval) / T) / Z;
+}

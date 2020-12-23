@@ -138,7 +138,7 @@ std::string Kyokumen::toSfen()const {
 	if (!wrote_mochi) {
 		usi += '-';
 	}
-	usi += " 1 ";
+	usi += " 1";
 	return usi;
 }
 

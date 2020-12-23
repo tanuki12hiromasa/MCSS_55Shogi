@@ -1,6 +1,7 @@
 #pragma once
 #include "learn_util.h"
 #include "agent.h"
+#include "learn_method.h"
 
 class Learner {
 public:
@@ -26,7 +27,7 @@ private:
 	void selfplay_sampling_td(LearnVec& dw);
 	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
-	void rootstrap_randomstart(int batch,int itr);
+	void learn_start_by_randompos(int batch,int itr);
 
 	double T_search = 200;
 	double T_selfplay = 120;
