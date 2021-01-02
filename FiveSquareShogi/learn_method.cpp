@@ -18,7 +18,7 @@ void SamplingBTS::update(SearchNode* const root, const SearchPlayer& rootplayer)
 		auto player = rootplayer;
 		auto node = root;
 		double realization = 1.0;
-		while (!node->isLeaf()) {
+		while (node) {
 			if (!learned_nodes.contains(node)) {
 				learned_nodes.insert(node);
 
@@ -28,7 +28,9 @@ void SamplingBTS::update(SearchNode* const root, const SearchPlayer& rootplayer)
 					* LearnUtil::probT * sigH * (1 - sigH);
 				dw.addGrad(c, rootplayer);
 			}
+			if (node->children.empty() || node->isLeaf()) {	break;}
 			const auto next = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
+			if (next == nullptr) { break;}
 			player.proceed(next->move);
 			realization *= LearnUtil::BackProb(node, next, T);
 			node = next;

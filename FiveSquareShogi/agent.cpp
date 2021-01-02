@@ -88,7 +88,6 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 	}
 	//展開・評価
 	{
-		if (!alive) return 0;
 		//末端ノードが他スレッドで展開中になっていないかチェック
 		LeafGuard dredear(node);
 		if (!dredear.Result()) {
