@@ -9,8 +9,8 @@ class SearchNode {
 
 public:
 	enum class State : std::int8_t {
-		NotExpanded, inExpanding, Expanded, Terminal,
-		N = NotExpanded, iE = inExpanding, E = Expanded, T = Terminal
+		NotExpanded, inExpanding, Expanded, Terminal, Repetition,
+		N = NotExpanded, iE = inExpanding, E = Expanded, T = Terminal, R = Repetition
 	};
 private:
 	static double mateMass;
@@ -67,7 +67,8 @@ public:
 	double getEvaluation()const { return eval.load(); }
 	std::int32_t getOriginEval()const { return origin_eval; }
 	bool isLeaf()const { const auto s = status.load(); return s == State::N || s == State::iE; }
-	bool isTerminal()const { return status == State::T; }
+	bool isTerminal()const { return status == State::T || status == State::R; }
+	bool isRepetition()const { return status == State::R; }
 	bool isSearchable()const { const auto s = status.load(); return s == State::N || s == State::E; }
 	double getTs(const double baseT)const;
 	double getEs()const;

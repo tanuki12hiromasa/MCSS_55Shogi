@@ -1,6 +1,7 @@
 #pragma once
 #include "learn_util.h"
 #include "agent.h"
+#include "learn_method.h"
 
 class Learner {
 public:
@@ -18,14 +19,17 @@ private:
 
 	void consecutive_rl(const std::string& sfenfile);
 	void selfplay_learn(const std::vector<std::string>& comdtokens);
-	void selfplay_simple_bootstrap();
-	void selfplay_child_bootstrap();
+	void selfplay_rootstrap(LearnVec& dw);
+	void selfplay_bootstrap(LearnVec& dw);
+	void selfplay_child_bootstrap(LearnVec& dw);
 	void selfplay_sampling_regression(LearnVec& dw);
-	void selfplay_sampling_pge();
+	void selfplay_sampling_pge(LearnVec& dw);
 	void selfplay_sampling_td(LearnVec& dw);
 	void selfplay_sampling_bts(int samplingnum, double droprate = 0);
 
-	double T_search = 120;
+	void learn_start_by_randompos(int batch,int itr);
+
+	double T_search = 200;
 	double T_selfplay = 120;
 	std::chrono::milliseconds searchtime{ 1000 };
 	int agentnum = 8;

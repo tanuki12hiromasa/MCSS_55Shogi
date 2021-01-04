@@ -8,14 +8,14 @@ namespace kppt {
 	constexpr int FVScale = 10;
 	constexpr int ScoreZero = 0;
 	constexpr int PawnScore = (100 * 9 / 10);
-	constexpr int SilverScore = (550 * 9 / 10);
-	constexpr int GoldScore = (600 * 9 / 10);
-	constexpr int BishopScore = (950 * 9 / 10);
-	constexpr int RookScore = (1100 * 9 / 10);
+	constexpr int SilverScore = (400 * 9 / 10);
+	constexpr int GoldScore = (500 * 9 / 10);
+	constexpr int BishopScore = (700 * 9 / 10);
+	constexpr int RookScore = (700 * 9 / 10);
 	constexpr int ProPawnScore = (600 * 9 / 10);
-	constexpr int ProSilverScore = (600 * 9 / 10);
-	constexpr int HorseScore = (1050 * 9 / 10);
-	constexpr int DragonScore = (1550 * 9 / 10);
+	constexpr int ProSilverScore = (550 * 9 / 10);
+	constexpr int HorseScore = (900 * 9 / 10);
+	constexpr int DragonScore = (1000 * 9 / 10);
 	constexpr int KingScore = (15000);
 
 	enum EvalIndex :int32_t {
@@ -64,6 +64,10 @@ namespace kppt {
 		e_hand_pawn,e_hand_silver,e_hand_bishop,e_hand_rook,e_hand_gold
 	};
 	inline EvalIndex mochiToIndex(koma::Mochigoma k, bool teban) { return teban ? sMochiToIndexArr[static_cast<size_t>(k)] : gMochiToIndexArr[static_cast<size_t>(k)]; }
-
+	constexpr EvalIndex mirror(const EvalIndex index) {
+		if (index < fe_hand_end)return index;
+		int pos = (index - fe_hand_end) / 25;
+		return static_cast<EvalIndex>((int)index - pos + koma::mirrorX(pos));
+	}
 
 }

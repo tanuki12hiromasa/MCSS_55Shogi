@@ -1,6 +1,7 @@
 ﻿#include "learner.h"
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include "usi.h"
 
 void Learner::execute() {
@@ -52,6 +53,9 @@ void Learner::execute() {
 			Evaluator::save();
 			std::cout << "saveparam done." << std::endl;
 		}
+		else if (tokens[0] == "printparam") {
+			Evaluator::print((tokens.size() > 1) ? std::stoi(tokens[1]) : 0);
+		}
 		else if (tokens[0] == "crl") {
 			//rlearnを連続で行う 
 			//crl 棋譜.sfen
@@ -68,16 +72,19 @@ void Learner::execute() {
 			if (tokens.size() > 2) {
 				if (tokens[2] == "bts0") {
 					//単純なbootstrapのみで学習
-					learner.selfplay_simple_bootstrap();
+					learner.selfplay_rootstrap(dw);
+				}
+				else if (tokens[2] == "btspv") {
+					learner.selfplay_bootstrap(dw);
 				}
 				else if (tokens[2] == "bts1") {
-					learner.selfplay_child_bootstrap();
+					learner.selfplay_child_bootstrap(dw);
 				}
 				else if (tokens[2] == "reg") {
 					learner.selfplay_sampling_regression(dw);
 				}
 				else if (tokens[2] == "pge") {
-					learner.selfplay_sampling_pge();
+					learner.selfplay_sampling_pge(dw);
 				}
 				else if (tokens[2] == "td") {
 					learner.selfplay_sampling_td(dw);
@@ -94,6 +101,10 @@ void Learner::execute() {
 			else {
 				learner.selfplay_learn(tokens);
 			}
+		}
+		else if (tokens[0] == "randomposlearn") {
+			if (tokens.size() < 2) { std::cout << "randomposlearn <batchsize> <itrsize>" << std::endl; continue; }
+			learner.learn_start_by_randompos(std::stoi(tokens[1]), std::stoi(tokens[2]));
 		}
 		else if (tokens[0] == "quit") {
 			break;
@@ -383,7 +394,7 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 					winner = tree.getRootPlayer().kyokumen.teban() ? -1 : 1;
 					break;
 				}
-				const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+				const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 				tree.proceed(next);
 				history.push_back(next->move);
 				std::cout << next->move.toUSI() << std::endl;
@@ -400,12 +411,11 @@ void Learner::selfplay_learn(const std::vector<std::string>& comdtokens) {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::selfplay_simple_bootstrap() {
+void Learner::selfplay_rootstrap(LearnVec& dw) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 
-	LearnVec dw;
-	std::cout << "self-play learning \n";
+	std::cout << "self-play rootstrap learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
 	int winner = 0;
@@ -426,7 +436,7 @@ void Learner::selfplay_simple_bootstrap() {
 			}
 
 			//bts
-			const auto rootplayer = tree.getRootPlayer();
+			const auto& rootplayer = tree.getRootPlayer();
 			LearnVec rootVec;
 			const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(rootplayer));
 			double c = LearnUtil::probT * sigH * (1 - sigH);
@@ -435,26 +445,63 @@ void Learner::selfplay_simple_bootstrap() {
 				dw += -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) * rootVec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}
-	dw.clamp(1000);
-	LearnVec::EvalClamp(30000);
-	dw.updateEval();
-	Evaluator::save();
 	std::cout << "self-play learning finished" << std::endl;
 }
 
+void Learner::selfplay_bootstrap(LearnVec& dw) {
+	SearchNode::setEsFuncCode(0);
+	std::cout << "self-play bootstrap learning \n";
+	std::vector<Move> history;
+	const Kyokumen startpos;
+	{
+		SearchTree tree;
+		while (true) {
+			tree.makeNewTree(startpos, history);
+			search(tree, searchtime);
+			const auto root = tree.getRoot();
+			if (std::abs(root->eval) >= SearchNode::getMateScoreBound()) {
+				const auto& player = tree.getRootPlayer();
+				const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
+				const double c = -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) 
+									* LearnUtil::probT * sigH * (1 - sigH);
+				dw.addGrad(c, player);
+				break;
+			}
+			//bts
+			if (learning_rate_bts > 0) {
+				auto player = tree.getRootPlayer();
+				SearchNode* node = root;
+				while (!node->isLeaf()) {
+					const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
+					const double c = -learning_rate_bts * (sigH - LearnUtil::EvalToProb(root->eval)) 
+										* LearnUtil::probT * sigH * (1 - sigH);
+					dw.addGrad(c, player);
+					node = LearnUtil::choiceBestChild(node);
+					if (node->children.empty()) break;
+					player.proceed(node->move);
+				}
+			}
+			const auto next = LearnUtil::choiceBestChild(root);
+			history.push_back(next->move);
+			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
+			tree.clear();
+		}
+		std::cout << "gameend." << std::endl;
+	}
+	std::cout << "self-play learning finished" << std::endl;
+}
 
-void Learner::selfplay_child_bootstrap() {
+void Learner::selfplay_child_bootstrap(LearnVec& dw) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 
-	LearnVec dw;
 	std::cout << "self-play bts-c learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
@@ -503,17 +550,13 @@ void Learner::selfplay_child_bootstrap() {
 				dw += learning_rate_pp * rootVec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
 		}
 		std::cout << "gameend." << std::endl;
 	}
-	dw.clamp(1000);
-	LearnVec::EvalClamp(30000);
-	dw.updateEval();
-	Evaluator::save();
 	std::cout << "self-play learning finished" << std::endl;
 }
 
@@ -558,7 +601,7 @@ void Learner::selfplay_sampling_regression(LearnVec& dw) {
 				dw_sWin += (0 - Pwin) * Pwin_grad;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -578,12 +621,11 @@ void Learner::selfplay_sampling_regression(LearnVec& dw) {
 	std::cout << "self-play learning finished" << std::endl;
 }
 
-void Learner::selfplay_sampling_pge() {
+void Learner::selfplay_sampling_pge(LearnVec& dw) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
 	const double Ta = T_search;
 
-	LearnVec dw;
 	std::cout << "self-play sampling pge learning \n";
 	std::vector<Move> history;
 	const Kyokumen startpos;
@@ -638,7 +680,7 @@ void Learner::selfplay_sampling_pge() {
 				dw += learning_rate_pge / LearnUtil::pTb * vec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_search, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_search, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -646,9 +688,6 @@ void Learner::selfplay_sampling_pge() {
 		}
 		std::cout << "gameend." << std::endl;
 	}
-
-	dw.updateEval();
-	Evaluator::save();
 
 	std::cout << "self-play learning finished" << std::endl;
 }
@@ -704,7 +743,7 @@ void Learner::selfplay_sampling_td(LearnVec& dw) {
 				g_V_t = sigV;
 			}
 			
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			//tree.deleteBranch(root, history);
@@ -760,7 +799,7 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 						const double sigH = LearnUtil::EvalToProb(Evaluator::evaluate(player));
 						const double c = -(sigH - sigE) * LearnUtil::probT * sigH * (1 - sigH);
 						vec.addGrad(c / node->mass, player);
-						node = LearnUtil::choiceChildRandom(node, T, random(engine));
+						node = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
 						if (!node)break;
 						player.proceed(node->move);
 					}
@@ -768,7 +807,7 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 				dw += (learning_rate_bts_sampling / samplingnum) * vec;
 			}
 
-			const auto next = LearnUtil::choiceChildRandom(root, T_selfplay, random(engine));
+			const auto next = LearnUtil::choicePolicyRandomChild(root, T_selfplay, random(engine));
 			tree.proceed(next);
 			history.push_back(next->move);
 			std::cout << next->move.toUSI() << "(" << next->eval << ")" << std::endl;
@@ -780,5 +819,110 @@ void Learner::selfplay_sampling_bts(const int samplingnum, double droprate) {
 	dw.updateEval();
 	Evaluator::save();
 	std::cout << "self-play learning finished" << std::endl;
+}
+
+void Learner::learn_start_by_randompos(const int batch,const int itr) {
+	std::cout << "start randompos rootstarp learn\n";
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+	const std::string tempinfo = "./.learninfo";
+	const std::string tempgrad = "./.learngradient";
+	int counter_itr = 0, counter_batch = 0;
+	const double learn_rate_0 = 0.01;
+	const double learn_rate_r = 0.5;
+	LearnVec dw;
+	//保険セーブが残っているなら再開
+	{
+		std::ifstream fs(tempinfo);  
+		if (fs) {
+			std::string buff;
+			std::getline(fs, buff);
+			counter_itr = std::stoi(buff);
+			std::getline(fs, buff);
+			counter_batch = std::stoi(buff);
+			if (counter_batch >= batch) { counter_itr++; counter_batch = 0; }
+		}
+	}
+	SearchTree tree;
+	for (; counter_itr < itr; counter_itr++) {
+		for (; counter_batch < batch; counter_batch++) {
+			std::cout << "(" << counter_itr << "," << counter_batch << ")\n";
+			LearnMethod* method = new SamplingBTS(dw, 0.001, 10000, 120);
+			
+			tree.makeNewTree(usi::split("position startpos", ' '));
+			const int movesnum = 6 + 10 * random(engine);
+			//ランダム局面を生成
+			for (int i = 0; i < movesnum; i++) {
+				const auto root = tree.getRoot();
+				const auto& player = tree.getRootPlayer();
+				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
+				if (moves.empty()) { counter_batch--; goto delTree; }
+				root->addChildren(moves);
+				const int randomchild = moves.size() * random(engine);
+				tree.proceed(root->children[randomchild]);
+			}
+			//rootが詰みの場合やり直し
+			{
+				const auto root = tree.getRoot();
+				const auto& player = tree.getRootPlayer();
+				const auto moves = MoveGenerator::genMove(root->move, player.kyokumen);
+				if (moves.empty()) { counter_batch--; goto delTree; }
+			}
+			while (tree.getRoot()!=nullptr) {
+				//探索
+				const auto root = tree.getRoot();
+				const auto& rootplayer = tree.getRootPlayer();
+				std::cout << root->move.toUSI() << " [" << rootplayer.kyokumen.toSfen() << "] ";
+				search(tree);
+
+				//ゲームが終了しているか調べる
+				const auto pl = LearnUtil::getPrincipalLeaf(root);
+				if (pl==nullptr) {
+					break;
+				}
+				if (pl->isRepetition()) {
+					method->fin(root, rootplayer, GameResult::Draw);
+					break;
+				}
+				if (pl->isTerminal()) {
+					method->fin(root, rootplayer, GameResult::SenteWin);//resultには結果を入れる (要実装)
+					break;
+				}
+
+				//学習
+				method->update(root, rootplayer);
+				
+				const auto bestchild = LearnUtil::choiceBestChild(root);
+				tree.proceed(bestchild);
+				tree.deleteBranch(root, { bestchild });
+			}
+			//保険セーブ
+			delTree:
+			{
+				dw.save(tempgrad);
+				std::ofstream fs(tempinfo);
+				if (fs) {
+					fs << counter_itr << "\n" << counter_batch << "\n";
+				}
+			}
+			//ノード消去
+			{
+				auto root = tree.getGameRoot();
+				root->deleteTree();
+				delete root;
+			}
+			delete method;
+			std::cout << "\n";
+		}
+		//評価関数に勾配を反映
+		dw.updateEval();
+		Evaluator::save();
+		dw.save(tempgrad);
+		counter_batch = 0;
+	}
+	//保険セーブ消去
+	std::filesystem::remove(tempinfo);
+	std::filesystem::remove(tempgrad);
+	std::cout << "learning end." << std::endl;
 }
 

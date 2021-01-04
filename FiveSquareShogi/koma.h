@@ -82,13 +82,21 @@ namespace koma {
 			return static_cast<Koma>(static_cast<std::uint8_t>(koma) - static_cast<std::uint8_t>(Koma::Sengo));
 	}
 
-	//x,yはそれぞれ[0,8]
+	//x,yはそれぞれ[0,4]
 	inline unsigned XYtoPos(const unsigned x, const unsigned y) {
 		return x * 5 + y;
 	}
 	inline int XYtoPos(const int x, const int y) {
 		assert(0 <= x && x < 5 && 0 <= y && y < 5);
 		return x * 5 + y;
+	}
+	inline int mirrorX(const int& pos) {
+		int x = (int)pos / 5; int y = (int)pos - x * 5;
+		return XYtoPos(4 - x, y);
+	}
+	inline Position mirrorX(const Position& pos) {
+		if (pos > Position::SQMax)return pos;
+		else return (Position)mirrorX((int)pos);
 	}
 
 	inline bool isInside(const int pos) {

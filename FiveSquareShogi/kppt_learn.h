@@ -31,8 +31,8 @@ namespace kppt {
 		void clamp(float absmax);
 
 		void updateEval();
-		void save(const std::string& path);
-		void load(const std::string& path);
+		void save(const std::string& path);//勾配ファイルを出力
+		void load(const std::string& path);//勾配ファイルを読み込む
 	private:
 		EvalVectorFloat* KPP;
 		EvalVectorFloat* KKP;
@@ -45,7 +45,7 @@ namespace kppt {
 		kppt_paramVector& operator+=(const fvpair& rhs);
 		kppt_paramVector& operator*=(const double c);
 
-		void showLearnVec_kppt(double displaymin,int isKPP)const;
+		void print(double displaymin,int isKPP)const;
 	
 		friend class kppt_learn;
 		friend class ShogiTest;

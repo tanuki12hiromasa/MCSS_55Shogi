@@ -16,10 +16,6 @@ std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const std::vector<std:
 	const auto moves = Move::usiToMoves(usitokens);
 	return set(Kyokumen(usitokens), moves);
 }
-void SearchTree::makeNewTree(const std::vector<std::string>& usitokens) {
-	const auto moves = Move::usiToMoves(usitokens);
-	makeNewTree(Kyokumen(usitokens), moves);
-}
 
 std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) {
 	std::vector<SearchNode*> newNodes;
@@ -34,9 +30,13 @@ std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startp
 			SearchNode* root = getRoot();
 			const Move nextmove = usihis[i];
 			SearchNode* nextNode = nullptr;
+			if (root->isTerminal()) {
+				return std::make_pair(false, newNodes);
+			}
 			if (root->isLeaf()) {
 				const auto moves = MoveGenerator::genAllMove(root->move, rootPlayer.kyokumen);
 				root->addChildren(moves);
+				nodecount += moves.size();
 			}
 			for (SearchNode* child : root->children) {
 				if (child->move == nextmove) {
@@ -46,6 +46,7 @@ std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startp
 			}
 			if (nextNode == nullptr) {
 				nextNode = root->addChild(nextmove);
+				nodecount++;
 			}
 			newNodes.push_back(nextNode);
 			proceed(nextNode);
@@ -55,15 +56,22 @@ std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startp
 	return std::make_pair(false, newNodes);
 }
 
+void SearchTree::makeNewTree(const std::vector<std::string>& usitokens) {
+	const auto moves = Move::usiToMoves(usitokens);
+	makeNewTree(Kyokumen(usitokens), moves);
+}
+
 void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& usihis) {
 	history.clear();
 	startKyokumen = startpos;
+	nodecount = 1;
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 	rootPlayer = SearchPlayer(startKyokumen);
 	for (auto& usimove : usihis) {
 		SearchNode* rootNode = getRoot();
 		const auto moves = MoveGenerator::genAllMove(rootNode->move, rootPlayer.kyokumen);
 		rootNode->addChildren(moves);
+		nodecount += moves.size();
 		SearchNode* next = nullptr;
 		for (const auto& child : rootNode->children) {
 			assert(child != nullptr);
@@ -74,6 +82,7 @@ void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& 
 		}
 		if (next == nullptr) {
 			next = rootNode->addChild(usimove);
+			nodecount++;
 		}
 		proceed(next);
 	}

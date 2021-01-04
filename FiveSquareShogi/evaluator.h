@@ -8,8 +8,8 @@
 #include "kkppt_feature.h"
 
 //ここで使用する評価関数を切り替える
-//#define USE_KPPT
-#define USE_KKPPT
+#define USE_KPPT
+//#define USE_KKPPT
 
 //kppt
 #ifdef  USE_KPPT

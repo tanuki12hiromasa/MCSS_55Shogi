@@ -88,7 +88,6 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 	}
 	//展開・評価
 	{
-		if (!alive) return 0;
 		//末端ノードが他スレッドで展開中になっていないかチェック
 		LeafGuard dredear(node);
 		if (!dredear.Result()) {
@@ -119,19 +118,13 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 			}
 		}
 		if (repnum > 0/*千日手である*/) {
-			if (repnum >= 3) {
-				if (checkRepetitiveCheck(player.kyokumen, history, latestRepnode)) {
-					node->setRepetitiveCheck();
-				}
-				else {
-					node->setRepetition(player.kyokumen.teban());
-				}
-				goto backup;
+			if (checkRepetitiveCheck(player.kyokumen, history, latestRepnode)) {
+				node->setRepetitiveCheck();
 			}
-			/*else if(!repnode->isLeaf()) {
-				nodeCopy(repnode, node);
-				goto backup;
-			}*/
+			else {
+				node->setRepetition(player.kyokumen.teban());
+			}
+			goto backup;
 		}
 		{//子ノード生成
 			const auto moves = MoveGenerator::genMove(node->move, player.kyokumen);

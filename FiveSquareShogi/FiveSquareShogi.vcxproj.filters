@@ -114,6 +114,9 @@
     <ClCompile Include="kkppt_learn.cpp">
       <Filter>kkppt</Filter>
     </ClCompile>
+    <ClCompile Include="learn_method.cpp">
+      <Filter>ヘッダー ファイル\learn</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="kppt_evaluate.h">
@@ -202,6 +205,9 @@
     </ClInclude>
     <ClInclude Include="kkppt_learn.h">
       <Filter>kkppt</Filter>
+    </ClInclude>
+    <ClInclude Include="learn_method.h">
+      <Filter>ヘッダー ファイル\learn</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
