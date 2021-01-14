@@ -8,9 +8,9 @@ SearchNode* LearnUtil::choicePolicyRandomChild(const SearchNode* const root, con
 	double CE = std::numeric_limits<double>::max();
 	if (root->isLeaf()) return nullptr;
 	std::vector<dn> evals; evals.reserve(root->children.size());
-	for (const auto& child : root->children) {
-		const double eval = child->eval;
-		evals.push_back(std::make_pair(eval, child));
+	for (auto& child : root->children) {
+		const double eval = child.eval;
+		evals.push_back(std::make_pair(eval, &child));
 		if (eval < CE) {
 			CE = eval;
 		}
@@ -34,17 +34,17 @@ SearchNode* LearnUtil::choicePolicyRandomChild(const SearchNode* const root, con
 
 SearchNode* LearnUtil::choiceRandomChild(const SearchNode* const root, const double pip) {
 	const int index = std::clamp(static_cast<int>(root->children.size() * pip), 0, (int)root->children.size() - 1);
-	return root->children[index];
+	return root->children.begin() + index;
 }
 
 SearchNode* LearnUtil::choiceBestChild(const SearchNode* const root) {
 	double min = std::numeric_limits<double>::max();
 	SearchNode* best = nullptr;
-	for (const auto& child : root->children) {
-		double eval = child->getEs();
+	for (auto& child : root->children) {
+		double eval = child.getEs();
 		if (eval < min) {
 			min = eval;
-			best = child;
+			best = &child;
 		}
 	}
 	return best;
@@ -301,10 +301,10 @@ double LearnUtil::EvalToProb(const double eval) {
 	return 1.0 / (1.0 + std::exp(-eval / probT));
 }
 
-double LearnUtil::BackProb(const SearchNode* const parent, const SearchNode* const child, const double T) {
+double LearnUtil::BackProb(const SearchNode& parent, const SearchNode& child, const double T) {
 	double Z = 0;
-	for (const auto& c : parent->children) {
-		Z += std::exp(-(c->eval + parent->eval) / T);
+	for (const auto& c : parent.children) {
+		Z += std::exp(-(c.eval + parent.eval) / T);
 	}
-	return std::exp(-(child->eval + parent->eval) / T) / Z;
+	return std::exp(-(child.eval + parent.eval) / T) / Z;
 }

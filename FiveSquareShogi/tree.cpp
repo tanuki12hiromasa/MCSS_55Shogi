@@ -47,6 +47,7 @@ std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startp
 			if (nextNode == nullptr) {
 				nextNode = root->addChild(nextmove);
 				nodecount++;
+
 			}
 			newNodes.push_back(nextNode);
 			proceed(nextNode);
@@ -67,21 +68,21 @@ void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& 
 	nodecount = 1;
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 	rootPlayer = SearchPlayer(startKyokumen);
-	for (auto& usimove : usihis) {
+	for (const auto& usimove : usihis) {
 		SearchNode* rootNode = getRoot();
 		const auto moves = MoveGenerator::genAllMove(rootNode->move, rootPlayer.kyokumen);
 		rootNode->addChildren(moves);
 		nodecount += moves.size();
 		SearchNode* next = nullptr;
-		for (const auto& child : rootNode->children) {
+		for (auto& child : rootNode->children) {
 			assert(child != nullptr);
-			if (child->move == usimove) {
-				next = child;
+			if (child.move == usimove) {
+				next = &child;
 				break;
 			}
 		}
 		if (next == nullptr) {
-			next = rootNode->addChild(usimove);
+			next = new SearchNode(usimove);
 			nodecount++;
 		}
 		proceed(next);

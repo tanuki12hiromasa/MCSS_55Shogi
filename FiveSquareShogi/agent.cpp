@@ -50,10 +50,10 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 		if (!alive) return 0;
 		double CE = std::numeric_limits<double>::max();
 		std::vector<dn> evals; evals.reserve(node->children.size());
-		for (const auto& child : node->children) {
-			if (child->isSearchable()) {
-				double eval = child->getEs();
-				evals.push_back(std::make_pair(eval, child));
+		for (auto& child : node->children) {
+			if (child.isSearchable()) {
+				double eval = child.getEs();
+				evals.push_back(std::make_pair(eval, &child));
 				if (eval < CE) {
 					CE = eval;
 				}
@@ -140,23 +140,23 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 			newnodecount += moves.size();
 		}
 		uint64_t evalcount = 0ull;
-		for (auto child : node->children) {
-			const auto cache = player.proceedC(child->move);
-			evalcount += qsimulate(child, player, history.size());
-			player.recede(child->move, cache);
+		for (auto& child : node->children) {
+			const auto cache = player.proceedC(child.move);
+			evalcount += qsimulate(&child, player, history.size());
+			player.recede(child.move, cache);
 		}
 		tree.addEvaluationCount(evalcount);
 		//sortは静止探索後の方が評価値順の並びが維持されやすい　親スタートの静止探索ならその前後共にsortしてもいいかもしれない
-		std::sort(node->children.begin(), node->children.end(), [](SearchNode* a, SearchNode* b)->int {return a->eval < b->eval; });
-		//sortしたのでfrontが最小値になっているはず
-		double emin = node->children.front()->eval;
+		std::sort(node->children.begin(), node->children.end(), [](const SearchNode& a, const SearchNode& b)->int {return a.eval < b.eval; });
+		//sortしたので一番上が最小値になっているはず
+		double emin = node->children.begin()->eval;
 		double Z_e = 0;
 		for (const auto& child : node->children) {
-			Z_e += std::exp(-(child->eval - emin) / T_e);
+			Z_e += std::exp(-(child.eval - emin) / T_e);
 		}
 		double E = 0;
 		for (const auto& child : node->children) {
-			E -= child->eval * std::exp(-(child->eval - emin) / T_e) / Z_e;
+			E -= child.eval * std::exp(-(child.eval - emin) / T_e) / Z_e;
 		}
 		node->setEvaluation(E);
 		node->setMass(1);
@@ -171,8 +171,8 @@ backup:
 			double emin = std::numeric_limits<double>::max();
 			std::vector<dd> emvec; emvec.reserve(node->children.size());
 			for (const auto& child : node->children) {
-				const double eval = child->getEvaluation();
-				const double mass = child->mass;
+				const double eval = child.getEvaluation();
+				const double mass = child.mass;
 				emvec.push_back(std::make_pair(eval, mass));
 				if (eval < emin) {
 					emin = eval;
@@ -306,14 +306,4 @@ bool SearchAgent::checkRepetitiveCheck(const Kyokumen& kyokumen, const std::vect
 		}
 	}
 	return false;
-}
-
-void SearchAgent::nodeCopy(const SearchNode* const origin, SearchNode* const copy)const {
-	copy->setEvaluation(origin->getEvaluation());
-	copy->move.setOute(origin->move.isOute());
-	for (auto& child : origin->children) {
-		copy->addCopyChild(child);
-	}
-	copy->setMass(1);
-	//copy->status = SearchNode::State::E;
 }
