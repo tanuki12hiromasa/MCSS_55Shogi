@@ -23,9 +23,6 @@ public:
 	SearchNode* getBestMove()const;//最もevalの高いrootのchildを返す
 	std::vector<SearchNode*> getPV()const;//rootからのpvの連なりを返す
 	void proceed(SearchNode* node);
-	void deleteBranch(SearchNode* base, const std::vector<SearchNode*>& savedNodes);//baseのsaved以下以外の探索木を子ノードを残して消去する
-	void deleteTree(SearchNode* const root);//rootを含め子孫を全消去する
-	void clear();
 
 	const uint64_t getNodeCount() const { return nodecount; }
 	const uint64_t getEvaluationCount()const { return evaluationcount; }
@@ -46,7 +43,8 @@ private:
 	std::atomic_uint64_t evaluationcount;
 	std::uint64_t nodesMaxCount;
 
-	bool leave_branchNode;
+	bool leave_branchNode = false;
+	bool continuous_tree = true;
 
 private:
 	void deleteTrees(const std::vector<SearchNode::Children*>& roots);
