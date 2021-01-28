@@ -3,12 +3,16 @@
 #include "kyokumen.h"
 #include "evaluator.h"
 #include <unordered_map>
+#include <thread>
+#include <queue>
+#include <condition_variable>
 
 class SearchTree {
 public:
 	SearchTree();
-	std::pair<bool, std::vector<SearchNode*>> set(const Kyokumen& startpos, const std::vector<Move>& moves);//返値は探索木を使えればtrue 作り直したらfalse
-	std::pair<bool, std::vector<SearchNode*>> set(const std::vector<std::string>& usitokens);
+	~SearchTree();
+	void set(const Kyokumen& startpos, const std::vector<Move>& moves);//返値は探索木を使えればtrue 作り直したらfalse
+	void set(const std::vector<std::string>& usitokens);
 	void makeNewTree(const Kyokumen& startpos, const std::vector<Move>& moves);
 	void makeNewTree(const std::vector<std::string>& usitokens);
 
@@ -34,7 +38,6 @@ public:
 
 	void foutTree()const;
 private:
-
 	std::unordered_multimap<std::uint64_t, std::pair<Bammen, uint16_t>> historymap;
 	std::vector<SearchNode*> history;
 	Kyokumen startKyokumen;
@@ -44,6 +47,16 @@ private:
 	std::uint64_t nodesMaxCount;
 
 	bool leave_branchNode;
+
+private:
+	void deleteTrees(const std::vector<SearchNode::Children*>& roots);
+	void deleteTreesLoop();
+
+	std::thread thread_deleteTrees;
+	std::queue<SearchNode::Children*> roots_deleteTrees;
+	std::condition_variable cv_deleteTrees;
+	std::mutex mtx_deleteTrees;
+	std::atomic_bool enable_deleteTrees;
 
 	friend class Commander;
 	friend class ShogiTest;

@@ -8,53 +8,79 @@ SearchTree::SearchTree()
 	:rootPlayer(), startKyokumen()
 {
 	leave_branchNode = false;
+	enable_deleteTrees = true;
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 	nodecount = 1;
 }
 
-std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const std::vector<std::string>& usitokens) {
-	const auto moves = Move::usiToMoves(usitokens);
-	return set(Kyokumen(usitokens), moves);
+SearchTree::~SearchTree() {
+	enable_deleteTrees = false;
+	cv_deleteTrees.notify_one();
+	auto root = getGameRoot();
+	delete root;
 }
 
-std::pair<bool, std::vector<SearchNode*>> SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) {
-	std::vector<SearchNode*> newNodes;
+void SearchTree::set(const std::vector<std::string>& usitokens) {
+	const auto moves = Move::usiToMoves(usitokens);
+	set(Kyokumen(usitokens), moves);
+}
+
+void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) {
+	std::vector<SearchNode::Children*> deletedRoots;
 	if (!history.empty() && (history.size() <= usihis.size()) && startKyokumen == startpos) {
 		int i;
 		for (i = 0; i < history.size() - 1; i++) {
 			if (history[i + 1ull]->move != usihis[i]) {
-				return std::make_pair(false, newNodes);
+				//与えられた棋譜が内部の棋譜と一致しないので探索木を作り直す
+				auto root = getGameRoot();
+				deletedRoots.push_back(root->purge());
+				delete root;
+				deleteTrees(deletedRoots);
+				makeNewTree(startpos, usihis);
+				return;
 			}
 		}
 		for (; i < usihis.size(); i++) {
-			SearchNode* root = getRoot();
+			SearchNode* parent = getRoot();
 			const Move nextmove = usihis[i];
 			SearchNode* nextNode = nullptr;
-			if (root->isTerminal()) {
-				return std::make_pair(false, newNodes);
+			if (parent->isTerminal()) {
+				std::copy(history.rbegin(), history.rend(), deletedNodes.begin());
+				deleteTrees(std::move(deletedNodes), true);
+				makeNewTree(startpos, usihis);
+				return;
 			}
-			if (root->isLeaf()) {
-				const auto moves = MoveGenerator::genAllMove(root->move, rootPlayer.kyokumen);
-				root->addChildren(moves);
+			if (parent->isLeaf()) {
+				const auto moves = MoveGenerator::genAllMove(parent->move, rootPlayer.kyokumen);
+				parent->addChildren(moves);
 				nodecount += moves.size();
 			}
-			for (SearchNode* child : root->children) {
-				if (child->move == nextmove) {
-					nextNode = child;
-					break;
+			for (auto& child : parent->children) {
+				//子ノードの中から棋譜での次の手を探す
+				if (child.move == nextmove) {
+					nextNode = &child;
+				}
+				//棋譜から逸れる手の探索木は削除リストに入れる
+				else {
+					deletedNodes.push_back(&child);
 				}
 			}
 			if (nextNode == nullptr) {
-				nextNode = root->addChild(nextmove);
+				nextNode = new SearchNode(nextmove);
 				nodecount++;
-
 			}
-			newNodes.push_back(nextNode);
 			proceed(nextNode);
 		}
-		return std::make_pair(true, newNodes);
+		deleteTrees(deletedRoots);
+		return;
 	}
-	return std::make_pair(false, newNodes);
+	//与えられた棋譜が内部の棋譜と一致しないので探索木を作り直す
+	auto root = getGameRoot();
+	deletedRoots.push_back(root->purge());
+	delete root;
+	deleteTrees(deletedRoots);
+	makeNewTree(startpos, usihis);
+	
 }
 
 void SearchTree::makeNewTree(const std::vector<std::string>& usitokens) {
@@ -171,8 +197,8 @@ void SearchTree::foutTree()const {
 		nq.pop();
 		int st = static_cast<int>(node->status.load());
 		fs << index << ", " << st << ", " << node->move.toUSI() << ", " << node->eval << ", " << node->mass << ", [";
-		for (const auto c : node->children) {
-			nq.push(c);
+		for (auto& c : node->children) {
+			nq.push(&c);
 			fs << c_index << ",";
 			c_index++;
 		}
@@ -180,4 +206,35 @@ void SearchTree::foutTree()const {
 		index++;
 	}
 	fs.close();
+}
+
+void SearchTree::deleteTrees(const std::vector<SearchNode::Children*>& roots) {
+	{
+		std::lock_guard<std::mutex> lock(mtx_deleteTrees);
+		for (auto root : roots) {
+			roots_deleteTrees.push(root);
+		}
+	}
+	cv_deleteTrees.notify_one();
+}
+
+void SearchTree::deleteTreesLoop() {
+	std::unique_lock<std::mutex> lock(mtx_deleteTrees);
+	while (enable_deleteTrees) {
+		cv_deleteTrees.wait(lock, [this] {return !enable_deleteTrees || !roots_deleteTrees.empty(); });
+		while (true) {
+			lock.lock();
+			if (!roots_deleteTrees.empty()) {
+				auto root = roots_deleteTrees.front();
+				roots_deleteTrees.pop();
+				lock.unlock();
+				delete root;
+			}
+			else {
+				lock.unlock();
+				break;
+			}
+		}
+	}
+
 }

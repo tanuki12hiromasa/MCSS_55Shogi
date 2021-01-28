@@ -14,6 +14,7 @@ public:
 	};
 
 	class Children {
+		friend class SearchNode;
 	public:
 		~Children();
 		void sporn(const std::vector<Move>& moves);
@@ -27,6 +28,7 @@ public:
 		bool empty() const { return count == 0; }
 		std::uint16_t size() const { return count; }
 	private:
+		Children* purge();
 		std::uint16_t count = 0;
 		SearchNode* list = nullptr;
 	};
@@ -68,7 +70,6 @@ public:
 	SearchNode(const SearchNode&) = delete;
 	SearchNode(SearchNode&&) = delete;
 
-	void deleteTree();//子孫ノードをすべて消す 自身は消さない
 	void addChildren(const std::vector<Move>& moves);
 
 	void setEvaluation(const double evaluation) { eval = evaluation; }
@@ -94,6 +95,7 @@ public:
 	double getChildRate(SearchNode* const child, const double T)const;
 	int getMateNum()const;
 private:
+	Children* purge();
 	double getTcMcVariance()const;
 	double getTcMcVarianceExpection()const;
 public:

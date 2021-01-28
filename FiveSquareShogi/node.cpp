@@ -19,6 +19,7 @@ double SearchNode::Es_c = 0.5;
 int SearchNode::PV_FuncCode = 3;
 double SearchNode::PV_c = 0.5;
 
+
 SearchNode::Children::~Children() {
 	if (list) {
 		delete[] list;
@@ -41,6 +42,15 @@ void SearchNode::Children::clear() {
 	count = 0;
 }
 
+SearchNode::Children* SearchNode::Children::purge() {
+	Children* c = new Children();
+	c->list = list;
+	c->count = count;
+	list = nullptr;
+	count = 0;
+	return c;
+}
+
 SearchNode::SearchNode() {
 	status = State::N;
 	eval = 0;
@@ -55,12 +65,9 @@ SearchNode::SearchNode(const Move& move)
 	mass = 0;
 }
 
-void SearchNode::deleteTree() {
-	if (children.empty()) {
-		return;
-	}
-	children.clear();
-	status = State::Terminal;
+SearchNode::Children* SearchNode::purge() {
+	status = State::NotExpanded;
+	return children.purge();
 }
 
 void SearchNode::addChildren(const std::vector<Move>& moves) {
