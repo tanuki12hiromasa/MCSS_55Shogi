@@ -19,6 +19,7 @@ double SearchNode::Es_c = 0.5;
 int SearchNode::PV_FuncCode = 3;
 double SearchNode::PV_c = 0.5;
 
+std::atomic_int64_t SearchNode::num_evalnodes{ 0 };
 
 SearchNode::Children::~Children() {
 	if (list) {
@@ -30,7 +31,11 @@ void SearchNode::Children::sporn(const std::vector<Move>& moves) {
 	count = moves.size();
 	list = new SearchNode[count];
 	for (int i = 0; i < count; i++) {
-		list->move = moves[i];
+		list[i].move = moves[i];
+		list[i].status = State::N;
+		list[i].eval = 0;
+		list[i].mass = 0;
+		list[i].origin_eval = 0;
 	}
 }
 
@@ -40,6 +45,13 @@ void SearchNode::Children::clear() {
 		list = nullptr;
 	}
 	count = 0;
+}
+
+void SearchNode::Children::swap(SearchNode::Children& children) {
+	const auto temp_count = count;
+	count = children.count; children.count = temp_count;
+	const auto temp_list = list;
+	list = children.list; children.list = temp_list;
 }
 
 SearchNode::Children* SearchNode::Children::purge() {
@@ -63,6 +75,20 @@ SearchNode::SearchNode(const Move& move)
 	status = State::N;
 	eval = 0;
 	mass = 0;
+}
+
+void SearchNode::swap(SearchNode& node) {
+	children.swap(node.children);
+	const auto temp_move = move;
+	move = node.move; node.move = temp_move;
+	const auto temp_status = status.load();
+	status = node.status.load(); node.status = temp_status;
+	const auto temp_oeval = origin_eval;
+	origin_eval = node.origin_eval; node.origin_eval = temp_oeval;
+	const auto temp_eval = eval.load();
+	eval = node.eval.load(); node.eval = temp_eval;
+	const auto temp_mass = mass.load();
+	mass = node.mass.load(); node.mass = temp_mass;
 }
 
 SearchNode::Children* SearchNode::purge() {

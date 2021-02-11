@@ -27,29 +27,22 @@ void SearchTree::set(const std::vector<std::string>& usitokens) {
 }
 
 void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) {
-	std::vector<SearchNode::Children*> deletedRoots;
+	//初期状態ならmakenewtreeで初期化
 	if (history.empty()) {
 		makeNewTree(startpos, usihis);
 		return;
 	}
 	else if (startKyokumen != startpos || history.size() > usihis.size()) {
 		//初期局面が異なるか与えられた棋譜が内部の棋譜より短いので探索木を作り直す
-		auto root = getGameRoot();
-		deletedRoots.push_back(root->purge());
-		delete root;
-		deleteTrees(deletedRoots);
 		makeNewTree(startpos, usihis);
 		return;
 	}
 	else {
+		std::vector<SearchNode::Children*> deletedRoots;
 		int i;
 		for (i = 0; i < history.size() - 1; i++) {
 			if (history[i + 1ull]->move != usihis[i]) {
 				//与えられた棋譜が内部の棋譜と一致しないので探索木を作り直す
-				auto root = getGameRoot();
-				deletedRoots.push_back(root->purge());
-				delete root;
-				deleteTrees(deletedRoots);
 				makeNewTree(startpos, usihis);
 				return;
 			}
@@ -68,6 +61,7 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 				//子ノードの中から棋譜での次の手を探す
 				if (child.move == nextmove) {
 					nextNode = &child;
+					if (leave_branchNode) break;
 				}
 				//棋譜から逸れる手の探索木は削除リストに入れる
 				else if(!leave_branchNode && !child.children.empty()){
@@ -105,13 +99,40 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 	}
 }
 
+void SearchTree::addNewChild(SearchNode* const parent, const Move& move) {
+	//childrenは後から数を増やせないので作り直す
+	auto p_oldchildren = parent->purge();
+	auto& oldchildren = *p_oldchildren;
+	std::vector<Move> moves;
+	for (const auto& child : oldchildren) {
+		moves.push_back(child.move);
+	}
+	moves.push_back(move);
+	parent->addChildren(moves);
+	//各子ノードの情報を入れ替える
+	for (int i = 0; i < oldchildren.size(); i++) {
+		auto& oldchild = oldchildren[i];
+		auto& newchild = parent->children[i];
+		newchild.swap(oldchild);
+	}
+	//古いchildrenは破棄する
+	deleteTrees(p_oldchildren);
+}
+
 void SearchTree::makeNewTree(const std::vector<std::string>& usitokens) {
 	const auto moves = Move::usiToMoves(usitokens);
 	makeNewTree(Kyokumen(usitokens), moves);
 }
 
 void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& usihis) {
-	history.clear();
+	if (!history.empty()) {
+		auto root = history.front();
+		if (root) {
+			deleteTrees(root->purge());
+			delete root;
+		}
+		history.clear();
+	}
 	startKyokumen = startpos;
 	nodecount = 1;
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
@@ -201,7 +222,14 @@ void SearchTree::foutTree()const {
 	fs.close();
 }
 
+void SearchTree::deleteTrees(SearchNode::Children* root) {
+	if (!root) return;
+	std::lock_guard<std::mutex> lock(mtx_deleteTrees);
+	roots_deleteTrees.push(root);
+}
+
 void SearchTree::deleteTrees(const std::vector<SearchNode::Children*>& roots) {
+	if (roots.empty()) return;
 	std::lock_guard<std::mutex> lock(mtx_deleteTrees);
 	for (auto root : roots) {
 		roots_deleteTrees.push(root);

@@ -47,6 +47,8 @@ private:
 	bool continuous_tree = true;
 
 private:
+	void addNewChild(SearchNode* const parent, const Move& move);
+	void deleteTrees(SearchNode::Children* root);
 	void deleteTrees(const std::vector<SearchNode::Children*>& roots);
 	void deleteTreesLoop();
 

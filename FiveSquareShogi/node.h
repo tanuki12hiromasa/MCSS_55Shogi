@@ -28,7 +28,9 @@ public:
 		bool empty() const { return count == 0; }
 		std::uint16_t size() const { return count; }
 	private:
+		void swap(Children& children);
 		Children* purge();
+
 		std::uint16_t count = 0;
 		SearchNode* list = nullptr;
 	};
@@ -46,6 +48,8 @@ private:
 	static double Es_c;
 	static int PV_FuncCode;
 	static double PV_c;
+
+	static std::atomic_int64_t num_evalnodes;
 public:
 	static void setMateScore(const double score) { mateScore = score; }
 	static void setMateScoreBound(const double bound) { mateScoreBound = bound; }
@@ -69,7 +73,7 @@ public:
 	SearchNode(const Move& move);
 	SearchNode(const SearchNode&) = delete;
 	SearchNode(SearchNode&&) = delete;
-
+	
 	void addChildren(const std::vector<Move>& moves);
 
 	void setEvaluation(const double evaluation) { eval = evaluation; }
@@ -95,6 +99,7 @@ public:
 	double getChildRate(SearchNode* const child, const double T)const;
 	int getMateNum()const;
 private:
+	void swap(SearchNode& node);
 	Children* purge();
 	double getTcMcVariance()const;
 	double getTcMcVarianceExpection()const;
