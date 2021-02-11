@@ -38,7 +38,6 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 		return;
 	}
 	else {
-		std::vector<SearchNode::Children*> deletedRoots;
 		int i;
 		for (i = 0; i < history.size() - 1; i++) {
 			if (history[i + 1ull]->move != usihis[i]) {
@@ -52,7 +51,7 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 			const Move nextmove = usihis[i];
 			SearchNode* nextNode = nullptr;
 			if (parent->isLeaf() || parent->isTerminal()) {
-				if (!parent->children.empty()) deletedRoots.push_back(parent->purge());
+				if (!parent->children.empty()) deleteTrees(parent->purge());
 				const auto moves = MoveGenerator::genAllMove(parent->move, rootPlayer.kyokumen);
 				parent->addChildren(moves);
 				parent->status = SearchNode::State::Expanded;
@@ -63,43 +62,26 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 					nextNode = &child;
 					if (leave_branchNode) break;
 				}
-				//棋譜から逸れる手の探索木は削除リストに入れる
+				//不要な探索木を残さない設定であれば、棋譜から逸れる手の探索木を破棄
 				else if(!leave_branchNode && !child.children.empty()){
-					deletedRoots.push_back(child.purge());
+					deleteTrees(child.purge());
 				}
 			}
 			if (nextNode == nullptr) {
-				if (!parent->children.empty()) deletedRoots.push_back(parent->purge());
-				std::vector<Move> moves = MoveGenerator::genAllMove(parent->move, rootPlayer.kyokumen);
-				parent->addChildren(moves);
-				for (auto& child : parent->children) {
-					if (child.move == nextmove) {
-						nextNode = &child;
-						break;
-					}
-				}
-				if (nextNode == nullptr) {
-					std::cout << "error: positionが不正です " << nextmove.toUSI() << std::endl;
-					if (!parent->children.empty()) deletedRoots.push_back(parent->purge());
-					moves.clear();
-					moves.push_back(nextmove);
-					parent->addChildren(moves);
-				}
+				nextNode = addNewChild(parent, nextmove);
 			}
 			proceed(nextNode);
 		}
-		//過去の探索結果を使わない場合は探索木を消去する
+		//過去の探索結果を使わない場合は新たな根からの探索木を消去する
 		if (!continuous_tree) {
 			auto root = getRoot();
-			deletedRoots.push_back(root->purge());
+			deleteTrees(root->purge());
 		}
-		//削除する探索木の根のリストを削除スレッドに渡す
-		deleteTrees(deletedRoots);
 		return;
 	}
 }
 
-void SearchTree::addNewChild(SearchNode* const parent, const Move& move) {
+SearchNode* SearchTree::addNewChild(SearchNode* const parent, const Move& move) {
 	//childrenは後から数を増やせないので作り直す
 	auto p_oldchildren = parent->purge();
 	auto& oldchildren = *p_oldchildren;
@@ -113,10 +95,13 @@ void SearchTree::addNewChild(SearchNode* const parent, const Move& move) {
 	for (int i = 0; i < oldchildren.size(); i++) {
 		auto& oldchild = oldchildren[i];
 		auto& newchild = parent->children[i];
+		assert(oldchild.move == newchild.move);
 		newchild.swap(oldchild);
 	}
 	//古いchildrenは破棄する
 	deleteTrees(p_oldchildren);
+	//追加した子ノードのポインタを返す
+	return &(parent->children[parent->children.size() - 1]);
 }
 
 void SearchTree::makeNewTree(const std::vector<std::string>& usitokens) {
@@ -226,14 +211,6 @@ void SearchTree::deleteTrees(SearchNode::Children* root) {
 	if (!root) return;
 	std::lock_guard<std::mutex> lock(mtx_deleteTrees);
 	roots_deleteTrees.push(root);
-}
-
-void SearchTree::deleteTrees(const std::vector<SearchNode::Children*>& roots) {
-	if (roots.empty()) return;
-	std::lock_guard<std::mutex> lock(mtx_deleteTrees);
-	for (auto root : roots) {
-		roots_deleteTrees.push(root);
-	}
 }
 
 void SearchTree::deleteTreesLoop() {
