@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "agent.h"
 #include "time_property.h"
 #include <mutex>
@@ -23,12 +23,9 @@ private:
 	void info();
 	void chakushu(SearchNode* const bestmove);
 	void position(const std::vector<std::string>& tokens);
-	void releaseAgentAndBranch(SearchNode* const prevRoot, std::vector<SearchNode*>&& newNodes);
-	void releaseAgentAndTree(SearchNode* const root);
 
 	SearchTree tree;
 	std::vector<std::unique_ptr<SearchAgent>> agents;
-	std::unique_ptr<std::thread> deleteThread;
 	int agentNum = 6;
 	bool permitPonder;
 	bool continuousTree = true;

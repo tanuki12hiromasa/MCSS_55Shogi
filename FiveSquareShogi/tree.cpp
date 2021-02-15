@@ -60,11 +60,7 @@ void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) 
 				//子ノードの中から棋譜での次の手を探す
 				if (child.move == nextmove) {
 					nextNode = &child;
-					if (leave_branchNode) break;
-				}
-				//不要な探索木を残さない設定であれば、棋譜から逸れる手の探索木を破棄
-				else if(!leave_branchNode && !child.children.empty()){
-					deleteTrees(child.purge());
+					break;
 				}
 			}
 			if (nextNode == nullptr) {
@@ -160,6 +156,14 @@ std::vector<SearchNode*> SearchTree::getPV()const {
 }
 
 void SearchTree::proceed(SearchNode* node) {
+	if (!leave_branchNode) {
+		const auto parent = getRoot();
+		for (auto& child : parent->children) {
+			if (&child != node) {
+				deleteTrees(child.purge());
+			}
+		}
+	}
 	historymap.emplace(rootPlayer.kyokumen.getHash(), std::make_pair(rootPlayer.kyokumen.getBammen(), history.size() - 1));
 	rootPlayer.kyokumen.proceed(node->move);
 	rootPlayer.feature.set(rootPlayer.kyokumen);

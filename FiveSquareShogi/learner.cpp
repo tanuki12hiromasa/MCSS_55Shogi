@@ -183,7 +183,6 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 				
 				const auto bestchild = LearnUtil::choiceBestChild(root);
 				tree.proceed(bestchild);
-				tree.deleteBranch(root, { bestchild });
 			}
 			//保険セーブ
 			delTree:
@@ -193,12 +192,6 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 				if (fs) {
 					fs << counter_itr << "\n" << counter_batch << "\n";
 				}
-			}
-			//ノード消去
-			{
-				auto root = tree.getGameRoot();
-				root->deleteTree();
-				delete root;
 			}
 			delete method;
 			std::cout << "\n";
