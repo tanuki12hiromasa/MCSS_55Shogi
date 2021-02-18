@@ -402,7 +402,7 @@ void Commander::info() {
 						const auto& root = PV[0];
 						std::cout << std::fixed;
 						std::cout << "info pv " << pvstr << "depth " << std::setprecision(2) << root->mass << " seldepth " << (PV.size() - 1)
-							<< " score cp " << static_cast<int>(root->eval) << " nodes " << tree.getNodeCount() << " nps " << nps << std::endl;
+							<< " score cp " << static_cast<int>(root->eval) << " nodes " << SearchNode::getNodeCount() << " nps " << nps << std::endl;
 					}
 					else {
 						std::cout << "info string failed to get pv" << std::endl;
@@ -436,7 +436,7 @@ void Commander::chakushu(SearchNode* const bestchild) {
 	for (SearchNode* node = bestchild; depth < 15 && node != nullptr; depth++, node = node->getBestChild()) pvstr += node->move.toUSI() + ' ';
 	std::cout << std::fixed;
 	std::cout << "info pv " << pvstr << "depth " << std::setprecision(2) << root->mass << " seldepth " << depth
-		<< " score cp " << static_cast<int>(root->eval) << " nodes " << tree.getNodeCount() << std::endl;
+		<< " score cp " << static_cast<int>(root->eval) << " nodes " << SearchNode::getNodeCount() << std::endl;
 	std::cout << "bestmove " << bestchild->move.toUSI() << std::endl;
 	tree.proceed(bestchild);
 	if (permitPonder) {

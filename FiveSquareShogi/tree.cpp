@@ -11,7 +11,6 @@ SearchTree::SearchTree()
 	leave_branchNode = false;
 	enable_deleteTrees = true;
 	//history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
-	nodecount = 1;
 }
 
 SearchTree::~SearchTree() {
@@ -115,25 +114,21 @@ void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& 
 		history.clear();
 	}
 	startKyokumen = startpos;
-	nodecount = 1;
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 	rootPlayer = SearchPlayer(startKyokumen);
 	for (const auto& usimove : usihis) {
 		SearchNode* rootNode = getRoot();
 		const auto moves = MoveGenerator::genAllMove(rootNode->move, rootPlayer.kyokumen);
 		rootNode->addChildren(moves);
-		nodecount += moves.size();
 		SearchNode* next = nullptr;
 		for (auto& child : rootNode->children) {
-			assert(child != nullptr);
 			if (child.move == usimove) {
 				next = &child;
 				break;
 			}
 		}
 		if (next == nullptr) {
-			next = new SearchNode(usimove);
-			nodecount++;
+			next = addNewChild(rootNode, usimove);
 		}
 		proceed(next);
 	}

@@ -19,6 +19,7 @@ public:
 		~Children();
 		void sporn(const std::vector<Move>& moves);
 		void clear();
+		void sort();//評価値の良い順に子ノードを並び替える
 		SearchNode* begin() { return list; }
 		SearchNode* const begin()const { return list; }
 		SearchNode* end() { return list + count; }
@@ -28,6 +29,7 @@ public:
 		bool empty() const { return count == 0; }
 		std::uint16_t size() const { return count; }
 	private:
+		static void sort(SearchNode* list, int l, int h);
 		void swap(Children& children);
 		Children* purge();
 
@@ -49,7 +51,7 @@ private:
 	static int PV_FuncCode;
 	static double PV_c;
 
-	static std::atomic_int64_t num_evalnodes;
+	static std::atomic_int64_t nodecount;
 public:
 	static void setMateScore(const double score) { mateScore = score; }
 	static void setMateScoreBound(const double bound) { mateScoreBound = bound; }
@@ -68,6 +70,7 @@ public:
 	static void setEsFuncParam(const double c) { Es_c = c; }
 	static void setPVFuncCode(const int code) { PV_FuncCode = code; }
 	static void setPVConst(const double b) { PV_c = b; }
+	static std::int64_t getNodeCount() { return nodecount; }
 public:
 	SearchNode();
 	SearchNode(const Move& move);

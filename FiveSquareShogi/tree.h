@@ -17,14 +17,12 @@ public:
 	void makeNewTree(const std::vector<std::string>& usitokens);
 
 	void setNodeMaxsize(const size_t s) { nodesMaxCount = s; }
-	void addNodeCount(const size_t n) { nodecount += n; }
 	void addEvaluationCount(const uint64_t n) { evaluationcount += n; }
 
 	SearchNode* getBestMove()const;//最もevalの高いrootのchildを返す
 	std::vector<SearchNode*> getPV()const;//rootからのpvの連なりを返す
 	void proceed(SearchNode* node);
 
-	const uint64_t getNodeCount() const { return nodecount; }
 	const uint64_t getEvaluationCount()const { return evaluationcount; }
 	const std::vector<SearchNode*>& getHistory()const { return history; }
 	const SearchPlayer& getRootPlayer()const { return rootPlayer; }
@@ -39,7 +37,6 @@ private:
 	std::vector<SearchNode*> history;
 	Kyokumen startKyokumen;
 	SearchPlayer rootPlayer;
-	std::atomic_uint64_t nodecount;
 	std::atomic_uint64_t evaluationcount;
 	std::uint64_t nodesMaxCount;
 
