@@ -23,7 +23,7 @@ public:
 	static LearnVec getSamplingGradV(const SearchNode* root, const SearchPlayer& player,unsigned samplingnum);
 	static LearnVec getSamplingGradQ(const SearchNode* root, const SearchPlayer& player, unsigned samplingnum);
 	static double EvalToProb(const double eval);
-	static double BackProb(const SearchNode* const parent, const SearchNode* const child, const double T);
+	static double BackProb(const SearchNode& parent, const SearchNode& child, const double T);
 	static constexpr double probT = 600.0;
 	static double pTb;
 };

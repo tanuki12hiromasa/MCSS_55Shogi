@@ -96,7 +96,6 @@ Commander::~Commander() {
 	for (auto& ag : agents) {
 		ag->terminate();
 	}
-	if (deleteThread != nullptr && deleteThread->joinable())deleteThread->detach();
 	if (go_thread.joinable()) go_thread.join();
 	if (info_thread.joinable())info_thread.join();
 }
@@ -403,7 +402,7 @@ void Commander::info() {
 						const auto& root = PV[0];
 						std::cout << std::fixed;
 						std::cout << "info pv " << pvstr << "depth " << std::setprecision(2) << root->mass << " seldepth " << (PV.size() - 1)
-							<< " score cp " << static_cast<int>(root->eval) << " nodes " << tree.getNodeCount() << " nps " << nps << std::endl;
+							<< " score cp " << static_cast<int>(root->eval) << " nodes " << SearchNode::getNodeCount() << " nps " << nps << std::endl;
 					}
 					else {
 						std::cout << "info string failed to get pv" << std::endl;
@@ -437,10 +436,9 @@ void Commander::chakushu(SearchNode* const bestchild) {
 	for (SearchNode* node = bestchild; depth < 15 && node != nullptr; depth++, node = node->getBestChild()) pvstr += node->move.toUSI() + ' ';
 	std::cout << std::fixed;
 	std::cout << "info pv " << pvstr << "depth " << std::setprecision(2) << root->mass << " seldepth " << depth
-		<< " score cp " << static_cast<int>(root->eval) << " nodes " << tree.getNodeCount() << std::endl;
+		<< " score cp " << static_cast<int>(root->eval) << " nodes " << SearchNode::getNodeCount() << std::endl;
 	std::cout << "bestmove " << bestchild->move.toUSI() << std::endl;
 	tree.proceed(bestchild);
-	releaseAgentAndBranch(root, { bestchild });
 	if (permitPonder) {
 		startAgent();
 	}
@@ -450,47 +448,5 @@ void Commander::chakushu(SearchNode* const bestchild) {
 void Commander::position(const std::vector<std::string>& tokens) {
 	std::lock_guard<std::mutex> lock(treemtx);
 	stopAgent();
-	const auto prevRoot = tree.getRoot();
-	if (continuousTree) {
-		auto result = tree.set(tokens);
-		if (result.first) {
-			releaseAgentAndBranch(prevRoot, std::move(result.second));
-		}
-		else {
-			tree.makeNewTree(tokens);
-			releaseAgentAndTree(prevRoot);
-		}
-	}
-	else {
-		tree.makeNewTree(tokens);
-		releaseAgentAndTree(prevRoot);
-	}
-}
-
-void Commander::releaseAgentAndBranch(SearchNode* const prevRoot, std::vector<SearchNode*>&& newNodes) {
-	auto tmpthread = std::move(deleteThread);
-	deleteThread = std::unique_ptr<std::thread>(new std::thread(
-		[&tree = tree, prevThread = std::move(tmpthread), prevAgents = std::move(agents), prevRoot, savedNodes = std::move(newNodes)]
-		{
-			if (prevThread != nullptr && prevThread->joinable()) prevThread->join();
-			for (auto& ag : prevAgents) {
-				ag->terminate();
-			}
-			tree.deleteBranch(prevRoot, savedNodes);
-		}));
-	agents.clear();
-}
-
-void Commander::releaseAgentAndTree(SearchNode* const root) {
-	auto tmpthread = std::move(deleteThread);
-	deleteThread = std::unique_ptr<std::thread>(new std::thread(
-		[&tree = tree, prevThread = std::move(tmpthread), prevAgents = std::move(agents), root]
-		{
-			if (prevThread != nullptr && prevThread->joinable()) prevThread->join();
-			for (auto& ag : prevAgents) {
-				ag->terminate();
-			}
-			tree.deleteTree(root);
-		}));
-	agents.clear();
+	tree.set(tokens);
 }

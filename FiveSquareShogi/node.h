@@ -12,6 +12,30 @@ public:
 		NotExpanded, inExpanding, Expanded, Terminal, Repetition,
 		N = NotExpanded, iE = inExpanding, E = Expanded, T = Terminal, R = Repetition
 	};
+
+	class Children {
+		friend class SearchNode;
+	public:
+		~Children();
+		void sporn(const std::vector<Move>& moves);
+		void clear();
+		void sort();//評価値の良い順に子ノードを並び替える
+		SearchNode* begin() { return list; }
+		SearchNode* const begin()const { return list; }
+		SearchNode* end() { return list + count; }
+		SearchNode* const end() const { return list + count; }
+		SearchNode& operator[] (const std::uint16_t i) { assert(i < count); return list[i]; }
+		const SearchNode& operator[] (const std::uint16_t i) const { assert(i < count); return list[i]; }
+		bool empty() const { return count == 0; }
+		std::uint16_t size() const { return count; }
+	private:
+		static void sort(SearchNode* list, int l, int h);
+		void swap(Children& children);
+		Children* purge();
+
+		std::uint16_t count = 0;
+		SearchNode* list = nullptr;
+	};
 private:
 	static double mateMass;
 	static double mateScore;
@@ -26,6 +50,8 @@ private:
 	static double Es_c;
 	static int PV_FuncCode;
 	static double PV_c;
+
+	static std::atomic_int64_t nodecount;
 public:
 	static void setMateScore(const double score) { mateScore = score; }
 	static void setMateScoreBound(const double bound) { mateScoreBound = bound; }
@@ -44,15 +70,14 @@ public:
 	static void setEsFuncParam(const double c) { Es_c = c; }
 	static void setPVFuncCode(const int code) { PV_FuncCode = code; }
 	static void setPVConst(const double b) { PV_c = b; }
+	static std::int64_t getNodeCount() { return nodecount; }
 public:
+	SearchNode();
 	SearchNode(const Move& move);
 	SearchNode(const SearchNode&) = delete;
 	SearchNode(SearchNode&&) = delete;
-
-	size_t deleteTree();//子孫ノードをすべて消す 自身は消さない
+	
 	void addChildren(const std::vector<Move>& moves);
-	SearchNode* addChild(const Move& move);
-	SearchNode* addCopyChild(const SearchNode* const origin);
 
 	void setEvaluation(const double evaluation) { eval = evaluation; }
 	void setMass(const double m) { mass = m; }
@@ -64,6 +89,7 @@ public:
 	void setRepetitiveCheck();
 	void setOriginEval(const double evaluation) { origin_eval = evaluation; }
 
+	std::size_t getOffspringsCount()const;
 	double getEvaluation()const { return eval.load(); }
 	std::int32_t getOriginEval()const { return origin_eval; }
 	bool isLeaf()const { const auto s = status.load(); return s == State::N || s == State::iE; }
@@ -76,10 +102,12 @@ public:
 	double getChildRate(SearchNode* const child, const double T)const;
 	int getMateNum()const;
 private:
+	void swap(SearchNode& node);
+	Children* purge();
 	double getTcMcVariance()const;
 	double getTcMcVarianceExpection()const;
 public:
-	std::vector<SearchNode*> children;
+	Children children;
 	Move move;
 private:
 	std::atomic<State> status;

@@ -9,8 +9,8 @@
 int main(int argc, char* argv[])
 {
     std::string enginename = (argc < 2) ? "ShibauraShoSho" : argv[1];
-    //Commander::execute(enginename);
-    Learner::execute();
+    Commander::execute(enginename);
+    //Learner::execute();
     //ShogiTest::test();
 }
 

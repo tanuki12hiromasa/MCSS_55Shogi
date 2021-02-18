@@ -27,33 +27,30 @@ SearchAgent::SearchAgent(SearchAgent&& agent) noexcept
 
 
 void SearchAgent::loop() {
-	size_t newnodecount = 0;
 	while (alive) {
-		newnodecount = simulate(root);
-		tree.addNodeCount(newnodecount);
+		simulate(root);
 	}
 }
 
-size_t SearchAgent::simulate(SearchNode* const root) {
+void SearchAgent::simulate(SearchNode* const root) {
 	using dn = std::pair<double, SearchNode*>;
 	using dd = std::pair<double, double>;
 	const double T_e = SearchNode::getTeval();
 	const double T_d = SearchNode::getTdepth();
 	const double MateScoreBound = SearchNode::getMateScoreBound();
-	size_t newnodecount = 0;
 	SearchNode* node = root;
 	player = tree.getRootPlayer();
 	std::vector<SearchNode*> history = { node };
 	std::vector<std::pair<uint64_t, Bammen>> k_history;
 	//選択
 	while (!node->isLeaf()) {
-		if (!alive) return 0;
+		if (!alive) return;
 		double CE = std::numeric_limits<double>::max();
 		std::vector<dn> evals; evals.reserve(node->children.size());
-		for (const auto& child : node->children) {
-			if (child->isSearchable()) {
-				double eval = child->getEs();
-				evals.push_back(std::make_pair(eval, child));
+		for (auto& child : node->children) {
+			if (child.isSearchable()) {
+				double eval = child.getEs();
+				evals.push_back(std::make_pair(eval, &child));
 				if (eval < CE) {
 					CE = eval;
 				}
@@ -65,7 +62,7 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 				using namespace std::chrono_literals;
 				std::this_thread::sleep_for(200us);
 			}
-			return 0;
+			return;
 		}
 		const double T_c = node->getTs(Ts);
 		double Z = 0;
@@ -91,7 +88,7 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 		//末端ノードが他スレッドで展開中になっていないかチェック
 		LeafGuard dredear(node);
 		if (!dredear.Result()) {
-			return 0;
+			return;
 		}
 		//千日手チェック
 		unsigned repnum = 0;
@@ -137,26 +134,25 @@ size_t SearchAgent::simulate(SearchNode* const root) {
 				goto backup;
 			}
 			node->addChildren(moves);
-			newnodecount += moves.size();
 		}
 		uint64_t evalcount = 0ull;
-		for (auto child : node->children) {
-			const auto cache = player.proceedC(child->move);
-			evalcount += qsimulate(child, player, history.size());
-			player.recede(child->move, cache);
+		for (auto& child : node->children) {
+			const auto cache = player.proceedC(child.move);
+			evalcount += qsimulate(&child, player, history.size());
+			player.recede(child.move, cache);
 		}
 		tree.addEvaluationCount(evalcount);
 		//sortは静止探索後の方が評価値順の並びが維持されやすい　親スタートの静止探索ならその前後共にsortしてもいいかもしれない
-		std::sort(node->children.begin(), node->children.end(), [](SearchNode* a, SearchNode* b)->int {return a->eval < b->eval; });
-		//sortしたのでfrontが最小値になっているはず
-		double emin = node->children.front()->eval;
+		node->children.sort();
+		//sortしたので一番上が最小値になっているはず
+		double emin = node->children.begin()->eval;
 		double Z_e = 0;
 		for (const auto& child : node->children) {
-			Z_e += std::exp(-(child->eval - emin) / T_e);
+			Z_e += std::exp(-(child.eval - emin) / T_e);
 		}
 		double E = 0;
 		for (const auto& child : node->children) {
-			E -= child->eval * std::exp(-(child->eval - emin) / T_e) / Z_e;
+			E -= child.eval * std::exp(-(child.eval - emin) / T_e) / Z_e;
 		}
 		node->setEvaluation(E);
 		node->setMass(1);
@@ -171,8 +167,8 @@ backup:
 			double emin = std::numeric_limits<double>::max();
 			std::vector<dd> emvec; emvec.reserve(node->children.size());
 			for (const auto& child : node->children) {
-				const double eval = child->getEvaluation();
-				const double mass = child->mass;
+				const double eval = child.getEvaluation();
+				const double mass = child.mass;
 				emvec.push_back(std::make_pair(eval, mass));
 				if (eval < emin) {
 					emin = eval;
@@ -202,8 +198,6 @@ backup:
 			}
 		}
 	}
-
-	return newnodecount;
 }
 
 double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, double beta, uint64_t& evalcount) {
@@ -232,7 +226,7 @@ double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, dou
 	return alpha;
 }
 
-uint64_t SearchAgent::qsimulate(SearchNode* const root, SearchPlayer& player, const int hislength) {
+size_t SearchAgent::qsimulate(SearchNode* const root, SearchPlayer& player, const int hislength) {
 	const int depth = SearchNode::getQSdepth();
 	if (depth <= 0) {
 		const double eval = Evaluator::evaluate(player);
@@ -306,14 +300,4 @@ bool SearchAgent::checkRepetitiveCheck(const Kyokumen& kyokumen, const std::vect
 		}
 	}
 	return false;
-}
-
-void SearchAgent::nodeCopy(const SearchNode* const origin, SearchNode* const copy)const {
-	copy->setEvaluation(origin->getEvaluation());
-	copy->move.setOute(origin->move.isOute());
-	for (auto& child : origin->children) {
-		copy->addCopyChild(child);
-	}
-	copy->setMass(1);
-	//copy->status = SearchNode::State::E;
 }

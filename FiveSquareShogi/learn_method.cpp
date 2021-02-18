@@ -32,7 +32,7 @@ void SamplingBTS::update(SearchNode* const root, const SearchPlayer& rootplayer)
 			const auto next = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
 			if (next == nullptr) { break;}
 			player.proceed(next->move);
-			realization *= LearnUtil::BackProb(node, next, T);
+			realization *= LearnUtil::BackProb(*node, *next, T);
 			node = next;
 		}
 	}
