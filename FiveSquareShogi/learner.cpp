@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <ctime>
 #include "usi.h"
 
 void Learner::execute() {
@@ -108,7 +109,14 @@ int Learner::getWinner(std::vector<std::string>& sfen) {
 	else return 0;
 }
 
-
+const std::string getDateString() {
+	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::string s(30, '\0');
+	std::tm ima;
+	localtime_s(&ima, &now);
+	std::strftime(&s[0], s.size(), "%Y%m%d-%H%M", &ima);
+	return s;
+}
 
 void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::cout << "start randompos rootstarp learn\n";
@@ -116,6 +124,8 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::mt19937_64 engine{ std::random_device()() };
 	const std::string tempinfo = "./.learninfo";
 	const std::string tempgrad = "./.learngradient";
+	const std::string learnlogdir = "./data/learnlog/" + getDateString();
+	std::filesystem::create_directories(learnlogdir);
 	int counter_itr = 0, counter_batch = 0;
 	const double learn_rate_0 = 0.01;
 	const double learn_rate_r = 0.5;
@@ -199,6 +209,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 		//評価関数に勾配を反映
 		dw.updateEval();
 		Evaluator::save();
+		if ((((counter_itr + 1) % (itr / 10)) == 0)) Evaluator::save(learnlogdir + "/" + std::to_string(counter_itr));
 		dw.save(tempgrad);
 		counter_batch = 0;
 	}
