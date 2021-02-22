@@ -9,6 +9,7 @@ void RootStrap::update(SearchNode* const root, const SearchPlayer& rootplayer) {
 	const double c = rate * -(sigH - LearnUtil::EvalToProb(root->eval))
 		* LearnUtil::probT * sigH * (1 - sigH);
 	dw.addGrad(c, rootplayer);
+	samplingPosNum += 1;
 	std::cout << H << " -> " << root->eval << "\n";
 }
 
@@ -37,4 +38,19 @@ void SamplingBTS::update(SearchNode* const root, const SearchPlayer& rootplayer)
 		}
 	}
 	std::cout << "learned kyokumen:" << learned_nodes.size() << "\n";
+	samplingPosNum += learned_nodes.size();
+}
+
+void SamplingBTS::fin(SearchNode* const root, const SearchPlayer& player, GameResult result) {
+	switch (result)
+	{
+		case GameResult::SenteWin:
+		case GameResult::GoteWin:
+			if (!root->children.empty()) update(root, player);
+			break;
+		case GameResult::Draw:
+		default:
+			//引き分けは学習しない
+			break;
+	}
 }

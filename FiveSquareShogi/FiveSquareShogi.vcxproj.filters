@@ -115,7 +115,7 @@
       <Filter>kkppt</Filter>
     </ClCompile>
     <ClCompile Include="learn_method.cpp">
-      <Filter>ヘッダー ファイル\learn</Filter>
+      <Filter>ソース ファイル\learn</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
