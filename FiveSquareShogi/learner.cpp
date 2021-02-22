@@ -125,9 +125,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::mt19937_64 engine{ std::random_device()() };
 	const std::string tempinfo = "./.learninfo";
 	const std::string tempgrad = "./.learngradient";
-	const std::string datestring = getDateString();
-	const std::string learnlogdir = "./data/learnlog/" + datestring;
-	std::filesystem::create_directories(learnlogdir);
+	std::string datestring = getDateString();
 	int counter_itr = 0, counter_batch = 0;
 	unsigned long long rootnum = 0, learnedposnum = 0;
 	const double learn_rate_0 = 0.01;
@@ -137,6 +135,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	{
 		std::ifstream fs(tempinfo);  
 		if (fs) {
+			std::getline(fs, datestring);
 			std::string buff;
 			std::getline(fs, buff);
 			counter_itr = std::stoi(buff);
@@ -149,6 +148,8 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 			learnedposnum = std::stoull(buff);
 		}
 	}
+	const std::string learnlogdir = "./data/learnlog/" + datestring;
+	std::filesystem::create_directories(learnlogdir);
 	SearchTree tree;
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
@@ -209,7 +210,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 				dw.save(tempgrad);
 				std::ofstream fs(tempinfo);
 				if (fs) {
-					fs << counter_itr << "\n" << counter_batch << "\n" << rootnum << "\n" << learnedposnum << "\n";
+					fs << datestring << "\n" << counter_itr << "\n" << counter_batch << "\n" << rootnum << "\n" << learnedposnum << "\n";
 				}
 			}
 			delete method;
