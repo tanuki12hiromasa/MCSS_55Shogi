@@ -6,18 +6,17 @@
 #include <iostream>
 
 SearchTree::SearchTree()
-	:rootPlayer(), startKyokumen()
+	:rootPlayer(), startKyokumen(), thread_deleteTrees(&SearchTree::deleteTreesLoop, this),
+	leave_branchNode(false), continuous_tree(true)
 {
-	leave_branchNode = false;
-	enable_deleteTrees = true;
-	//history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 }
 
 SearchTree::~SearchTree() {
 	enable_deleteTrees = false;
-	cv_deleteTrees.notify_one();
+	cv_deleteTrees.notify_all();
 	auto root = getGameRoot();
 	delete root;
+	thread_deleteTrees.join();
 }
 
 void SearchTree::set(const std::vector<std::string>& usitokens) {
@@ -163,6 +162,7 @@ void SearchTree::proceed(SearchNode* node) {
 	rootPlayer.kyokumen.proceed(node->move);
 	rootPlayer.feature.set(rootPlayer.kyokumen);
 	history.push_back(node);
+	cv_deleteTrees.notify_all();
 }
 
 
@@ -213,6 +213,7 @@ void SearchTree::deleteTrees(SearchNode::Children* root) {
 }
 
 void SearchTree::deleteTreesLoop() {
+	enable_deleteTrees = true;
 	std::unique_lock<std::mutex> lock(mtx_deleteTrees);
 	while (enable_deleteTrees) {
 		cv_deleteTrees.wait(lock, [this] {return !enable_deleteTrees || !roots_deleteTrees.empty(); });
