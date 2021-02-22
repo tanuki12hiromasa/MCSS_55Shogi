@@ -33,10 +33,10 @@ void SearchNode::Children::sporn(const std::vector<Move>& moves) {
 	list = new SearchNode[count];
 	for (int i = 0; i < count; i++) {
 		list[i].move = moves[i];
-		list[i].status = State::N;
-		list[i].eval = 0;
-		list[i].mass = 0;
-		list[i].origin_eval = 0;
+		//list[i].status = State::N;
+		//list[i].eval = 0;
+		//list[i].mass = 0;
+		//list[i].origin_eval = 0;
 	}
 	nodecount += count;
 }
@@ -94,6 +94,7 @@ SearchNode::SearchNode() {
 	status = State::N;
 	eval = 0;
 	mass = 0;
+	origin_eval = 0;
 }
 
 SearchNode::SearchNode(const Move& move)

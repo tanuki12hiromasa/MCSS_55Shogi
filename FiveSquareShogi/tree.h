@@ -11,7 +11,7 @@ class SearchTree {
 public:
 	SearchTree();
 	~SearchTree();
-	void set(const Kyokumen& startpos, const std::vector<Move>& moves);//返値は探索木を使えればtrue 作り直したらfalse
+	void set(const Kyokumen& startpos, const std::vector<Move>& moves);
 	void set(const std::vector<std::string>& usitokens);
 	void makeNewTree(const Kyokumen& startpos, const std::vector<Move>& moves);
 	void makeNewTree(const std::vector<std::string>& usitokens);
@@ -38,7 +38,7 @@ private:
 	Kyokumen startKyokumen;
 	SearchPlayer rootPlayer;
 	std::atomic_uint64_t evaluationcount;
-	std::uint64_t nodesMaxCount;
+	std::uint64_t nodesMaxCount = std::numeric_limits<std::uint64_t>::max();
 
 	bool leave_branchNode = false;
 	bool continuous_tree = true;
