@@ -154,7 +154,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
 			std::cout << "(" << counter_itr << "," << counter_batch << ")\n";
-			LearnMethod* method = new SamplingBTS(dw, 0.001, 10000, 120);
+			LearnMethod* method = new SamplingPGLeaf(dw, 0.001, 10000, 120);
 			
 			tree.makeNewTree(usi::split("position startpos", ' '));
 			const int movesnum = 6 + 10 * random(engine);

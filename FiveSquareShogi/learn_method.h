@@ -38,6 +38,20 @@ private:
 };
 
 
+class SamplingPGLeaf :public LearnMethod {
+public:
+	SamplingPGLeaf(LearnVec& dw, const double& learn_rate, const size_t& sampling_num, const double& T)
+		:rate(learn_rate), sampling_num(sampling_num), T(T), LearnMethod(dw) {}
+	void update(SearchNode* const root, const SearchPlayer& player);
+	//void fin(SearchNode* const root, const SearchPlayer& player, GameResult result)override;
+private:
+	const double rate;
+	const size_t sampling_num;
+	const double T;
+	std::uniform_real_distribution<double> random{ 0, 1.0 };
+	std::mt19937_64 engine{ std::random_device()() };
+};
+
 //class InterBTS :public LearnMethod {
 //
 //};

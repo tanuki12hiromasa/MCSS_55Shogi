@@ -25,6 +25,20 @@ std::vector<Move> Move::usiToMoves(const std::vector<std::string>& tokens) {
 	return moves;
 }
 
+std::vector<Move> Move::usiToMoves(const std::vector<std::string>& tokens, unsigned start) {
+	std::vector<Move> moves;
+	auto token = tokens.begin() + start;
+	auto tend = tokens.end();
+	if (token != tend) {
+		++token;
+		for (bool sengo = true; token != tend; ++token) {
+			moves.emplace_back(Move(*token, sengo));
+			sengo = !sengo;
+		}
+	}
+	return moves;
+}
+
 std::string Move::toUSI() const {
 	using namespace koma;
 	using namespace usi;

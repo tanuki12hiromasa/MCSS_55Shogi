@@ -2,6 +2,7 @@
 #include "learn_method.h"
 #include <iostream>
 #include <set>
+#include <unordered_map>
 
 void RootStrap::update(SearchNode* const root, const SearchPlayer& rootplayer) {
 	const double H = Evaluator::evaluate(rootplayer);
@@ -53,4 +54,67 @@ void SamplingBTS::fin(SearchNode* const root, const SearchPlayer& player, GameRe
 			//引き分けは学習しない
 			break;
 	}
+}
+
+std::vector<Move> unzipHistory(std::string history) {
+	std::vector<Move> moves;
+	for (const auto& b : history) {
+		if (b == '\0')break;
+		moves.emplace_back(Move(b));
+	}
+	return moves;
+}
+
+void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplayer) {
+	std::unordered_map<std::string, std::size_t> visited;
+	LearnVec testvec;
+	double cmin = std::numeric_limits<double>::max();
+	double Z = 0;
+	for (const auto& child : root->children) {
+		if (child.eval < cmin)cmin = child.eval;
+	}
+	for (const auto& child : root->children) {
+		Z += std::exp(-(child.eval - cmin) / T);
+	}
+	for (const auto& child : root->children) {
+		visited.clear();
+		const double pi = std::exp(-(child.eval - cmin) / T) / Z;
+		const std::size_t p_sanpling_num = pi * sampling_num;
+		if (p_sanpling_num == 0)continue;
+		for (std::size_t i = 0; i < p_sanpling_num; i++) {
+			auto player = rootplayer;
+			auto node = root;
+			std::string history;
+			while (node) {
+				if (node->children.empty() || node->isLeaf()) {
+					visited[history] += 1;
+					break; 
+				}
+				const auto next = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
+				if (next == nullptr) { break; }
+				player.proceed(next->move);
+				history += next->move.binary();
+				node = next;
+			}
+		}
+		LearnVec gradQ;
+		for (const auto& v : visited) {
+			auto player = rootplayer;
+			const auto history = unzipHistory(v.first);
+			for (const auto& move : history) {
+				player.proceed(move);
+			}
+			const double c = v.second / (p_sanpling_num);
+			gradQ.addGrad(c, player);
+		}
+		if (child.eval == cmin) {
+			testvec += (1 - pi) * gradQ;
+		}
+		else {
+			testvec += -pi * gradQ;
+		}
+	}
+	dw += rate * testvec;
+
+
 }
