@@ -272,3 +272,7 @@ ShogiStudySecond/depthlog/
 ShogiStudyThird/treelog.txt
 
 FiveSquareShogi/.VSCodeCounter/
+
+FiveSquareShogi/data/
+
+FiveSquareShogi/log.txt

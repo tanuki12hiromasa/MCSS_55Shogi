@@ -58,8 +58,8 @@ void SamplingBTS::fin(SearchNode* const root, const SearchPlayer& player, GameRe
 
 std::vector<Move> unzipHistory(std::string history) {
 	std::vector<Move> moves;
-	for (const auto& b : history) {
-		if (b == '\0')break;
+	for (int i = 0; i < history.size() - 1; i += 2) {
+		const std::uint16_t b = ((history[i] << 8)& 0xFF00U) | (history[i + 1ULL] & 0xFFU);
 		moves.emplace_back(Move(b));
 	}
 	return moves;
@@ -79,8 +79,10 @@ void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplay
 	for (const auto& child : root->children) {
 		visited.clear();
 		const double pi = std::exp(-(child.eval - cmin) / T) / Z;
+		std::cout << pi << "\n";
 		const std::size_t p_sanpling_num = pi * sampling_num;
 		if (p_sanpling_num == 0)continue;
+		std::vector<Move> check1;
 		for (std::size_t i = 0; i < p_sanpling_num; i++) {
 			auto player = rootplayer;
 			auto node = root;
@@ -88,12 +90,16 @@ void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplay
 			while (node) {
 				if (node->children.empty() || node->isLeaf()) {
 					visited[history] += 1;
+					const auto check2 = unzipHistory(history);
 					break; 
 				}
 				const auto next = LearnUtil::choicePolicyRandomChild(node, T, random(engine));
 				if (next == nullptr) { break; }
 				player.proceed(next->move);
-				history += next->move.binary();
+				const auto binary = next->move.binary();
+				history += (char)((binary >> 8) & 0xFFU);
+				history += (char)(binary & 0xFFU);
+				check1.push_back(next->move);
 				node = next;
 			}
 		}
@@ -104,7 +110,7 @@ void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplay
 			for (const auto& move : history) {
 				player.proceed(move);
 			}
-			const double c = v.second / (p_sanpling_num);
+			const double c = (double)v.second / (p_sanpling_num);
 			gradQ.addGrad(c, player);
 		}
 		if (child.eval == cmin) {
@@ -113,7 +119,11 @@ void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplay
 		else {
 			testvec += -pi * gradQ;
 		}
+		//gradQ.print(0.01, 0);
+		//gradQ.print(0.01, 1);
 	}
+	//testvec.print(0.01, 0);
+	//testvec.print(0.01, 1);
 	dw += rate * testvec;
 
 
