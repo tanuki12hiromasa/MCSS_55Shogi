@@ -12,7 +12,8 @@ SearchTree::SearchTree()
 }
 
 SearchTree::~SearchTree() {
-	enable_deleteTrees = false;
+	enable_deleteTrees = true;
+	alive_deleteTrees = false;
 	cv_deleteTrees.notify_all();
 	auto root = getGameRoot();
 	delete root;
@@ -213,12 +214,13 @@ void SearchTree::deleteTrees(SearchNode::Children* root) {
 }
 
 void SearchTree::deleteTreesLoop() {
-	enable_deleteTrees = true;
+	alive_deleteTrees = true;
+	enable_deleteTrees = false;
 	std::unique_lock<std::mutex> lock(mtx_deleteTrees);
-	while (enable_deleteTrees) {
-		cv_deleteTrees.wait(lock, [this] {return !enable_deleteTrees || !roots_deleteTrees.empty(); });
+	while (alive_deleteTrees || !roots_deleteTrees.empty()) {
+		cv_deleteTrees.wait(lock, [this] {return enable_deleteTrees && !roots_deleteTrees.empty(); });
 		while (true) {
-			if (roots_deleteTrees.empty()) {
+			if (!enable_deleteTrees || roots_deleteTrees.empty()) {
 				break;
 			}
 			auto root = roots_deleteTrees.front();
