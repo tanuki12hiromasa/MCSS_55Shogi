@@ -212,7 +212,7 @@ LearnVec LearnUtil::getSamplingGrad(const SearchNode* const root, const SearchPl
 LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchPlayer& rootplayer, const unsigned samplingnum) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
-	const double T = SearchNode::getTeval();
+	const double T = SearchTemperature::Te;
 	LearnVec vec;
 	if (!root)return vec;
 	if (root->children.empty() || root->isLeaf()) {
@@ -259,7 +259,7 @@ LearnVec LearnUtil::getSamplingGradV(const SearchNode* const root, const SearchP
 LearnVec LearnUtil::getSamplingGradQ(const SearchNode* root, const SearchPlayer& rootplayer, const unsigned samplingnum) {
 	std::uniform_real_distribution<double> random{ 0, 1.0 };
 	std::mt19937_64 engine{ std::random_device()() };
-	const double T = SearchNode::getTeval();
+	const double T = SearchTemperature::Te;
 	LearnVec vec;
 	if (!root)return vec;
 	if (root->children.empty() || root->isLeaf()) {

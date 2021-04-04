@@ -75,22 +75,15 @@ void Learner::search(SearchTree& tree) {
 void Learner::search(SearchTree& tree, const std::chrono::milliseconds time) {
 	using namespace std::chrono_literals;
 	constexpr auto checkflame = 50ms;
-	std::vector<std::unique_ptr<SearchAgent>> agents;
-	for (int i = 0; i < agentnum; i++) {
-		agents.push_back(std::unique_ptr<SearchAgent>(new SearchAgent(tree, T_search, i)));
-	}
+	AgentPool agents(tree);
+	agents.setAgentNum(agentnum);
 	const auto starttime = std::chrono::system_clock::now();
 	const SearchNode* const root = tree.getRoot();
 	while (std::abs(root->eval) < SearchNode::getMateScoreBound() && std::chrono::system_clock::now() - starttime < time) {
 		std::this_thread::sleep_for(checkflame);
 	}
-	for (auto& ag : agents) {
-		ag->stop();
-	}
-	for (auto& ag : agents) {
-		ag->terminate();
-	}
-	agents.clear();
+	agents.pauseSearch();
+	agents.terminate();
 }
 
 //どちらが勝ったかを返す関数 1:先手勝ち -1:後手勝ち 0:引き分け
