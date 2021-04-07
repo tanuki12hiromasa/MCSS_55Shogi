@@ -6,6 +6,7 @@
 class Move {
 public:
 	static std::vector<Move> usiToMoves(const std::vector<std::string>& tokens);
+	static std::vector<Move> usiToMoves(const std::vector<std::string>& tokens, unsigned start);
 
 	Move() :Move(koma::Position::NullMove, koma::Position::NullMove, false) {}
 
@@ -18,6 +19,7 @@ public:
 	Move(const std::string& usi, bool teban)
 		:Move(usiToFrom(usi, teban), usiToTo(usi), usiToPromote(usi))
 	{}
+	Move(const std::uint16_t binary) :u(binary) {}
 
 	void setOute(bool isOute) { u = (u & 0x7FFFu) | (isOute << 15); }
 
@@ -26,6 +28,7 @@ public:
 	bool promote()const { return static_cast<bool>((u >> 14) & 0x1u); }
 	bool isOute()const { return static_cast<bool>((u >> 15) & 0x1u); }
 	std::string toUSI()const;
+	std::uint16_t binary()const { return u; }
 
 	bool operator==(const Move& rhs) const {
 		return (u & 0x7FFFu) == (rhs.u & 0x7FFFu);

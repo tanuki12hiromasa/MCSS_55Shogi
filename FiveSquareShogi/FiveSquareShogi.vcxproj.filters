@@ -115,7 +115,10 @@
       <Filter>kkppt</Filter>
     </ClCompile>
     <ClCompile Include="learn_method.cpp">
-      <Filter>ヘッダー ファイル\learn</Filter>
+      <Filter>ソース ファイル\learn</Filter>
+    </ClCompile>
+    <ClCompile Include="temperature.cpp">
+      <Filter>ソース ファイル\search</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -208,6 +211,9 @@
     </ClInclude>
     <ClInclude Include="learn_method.h">
       <Filter>ヘッダー ファイル\learn</Filter>
+    </ClInclude>
+    <ClInclude Include="temperature.h">
+      <Filter>ヘッダー ファイル\search</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

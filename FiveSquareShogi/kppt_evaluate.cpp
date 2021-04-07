@@ -18,6 +18,10 @@ namespace kppt {
 		kppt_feat::save(ofolderpath);
 	}
 	
+	void kppt_evaluator::save(const std::string& path) {
+		kppt_feat::save(path);
+	}
+
 	double kppt_evaluator::evaluate(const SearchPlayer& player) {
 		return (double)player.feature.sum.sum(player.kyokumen.teban()) / FVScale;
 	}

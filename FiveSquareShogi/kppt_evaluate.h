@@ -8,6 +8,7 @@ namespace kppt {
 	public:
 		static void init();
 		static void save();
+		static void save(const std::string& path);
 		static double evaluate(const SearchPlayer& player);
 		static double evaluate(const SearchPlayer& player, bool jiteban);
 

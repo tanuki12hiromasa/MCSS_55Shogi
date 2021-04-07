@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <filesystem>
+#include <ctime>
 #include "usi.h"
 
 void Learner::execute() {
@@ -74,22 +75,15 @@ void Learner::search(SearchTree& tree) {
 void Learner::search(SearchTree& tree, const std::chrono::milliseconds time) {
 	using namespace std::chrono_literals;
 	constexpr auto checkflame = 50ms;
-	std::vector<std::unique_ptr<SearchAgent>> agents;
-	for (int i = 0; i < agentnum; i++) {
-		agents.push_back(std::unique_ptr<SearchAgent>(new SearchAgent(tree, T_search, i)));
-	}
+	AgentPool agents(tree);
+	agents.setAgentNum(agentnum);
 	const auto starttime = std::chrono::system_clock::now();
 	const SearchNode* const root = tree.getRoot();
 	while (std::abs(root->eval) < SearchNode::getMateScoreBound() && std::chrono::system_clock::now() - starttime < time) {
 		std::this_thread::sleep_for(checkflame);
 	}
-	for (auto& ag : agents) {
-		ag->stop();
-	}
-	for (auto& ag : agents) {
-		ag->terminate();
-	}
-	agents.clear();
+	agents.pauseSearch();
+	agents.terminate();
 }
 
 //どちらが勝ったかを返す関数 1:先手勝ち -1:後手勝ち 0:引き分け
@@ -108,7 +102,15 @@ int Learner::getWinner(std::vector<std::string>& sfen) {
 	else return 0;
 }
 
-
+const std::string getDateString() {
+	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::string s(30, '\0');
+	std::tm ima;
+	localtime_s(&ima, &now);
+	std::strftime(&s[0], s.size(), "%Y%m%d-%H%M", &ima);
+	s.resize(s.find('\0'));
+	return s;
+}
 
 void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::cout << "start randompos rootstarp learn\n";
@@ -116,7 +118,9 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	std::mt19937_64 engine{ std::random_device()() };
 	const std::string tempinfo = "./.learninfo";
 	const std::string tempgrad = "./.learngradient";
+	std::string datestring = getDateString();
 	int counter_itr = 0, counter_batch = 0;
+	unsigned long long rootnum = 0, learnedposnum = 0;
 	const double learn_rate_0 = 0.01;
 	const double learn_rate_r = 0.5;
 	LearnVec dw;
@@ -124,19 +128,26 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 	{
 		std::ifstream fs(tempinfo);  
 		if (fs) {
+			std::getline(fs, datestring);
 			std::string buff;
 			std::getline(fs, buff);
 			counter_itr = std::stoi(buff);
 			std::getline(fs, buff);
-			counter_batch = std::stoi(buff);
+			counter_batch = std::stoi(buff) + 1;
 			if (counter_batch >= batch) { counter_itr++; counter_batch = 0; }
+			std::getline(fs, buff);
+			rootnum = std::stoull(buff);
+			std::getline(fs, buff);
+			learnedposnum = std::stoull(buff);
 		}
 	}
+	const std::string learnlogdir = "./data/learnlog/" + datestring;
+	std::filesystem::create_directories(learnlogdir);
 	SearchTree tree;
 	for (; counter_itr < itr; counter_itr++) {
 		for (; counter_batch < batch; counter_batch++) {
 			std::cout << "(" << counter_itr << "," << counter_batch << ")\n";
-			LearnMethod* method = new SamplingBTS(dw, 0.001, 10000, 120);
+			LearnMethod* method = new SamplingPGLeaf(dw, 0.001, 10000, 120);
 			
 			tree.makeNewTree(usi::split("position startpos", ' '));
 			const int movesnum = 6 + 10 * random(engine);
@@ -163,6 +174,7 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 				const auto& rootplayer = tree.getRootPlayer();
 				std::cout << root->move.toUSI() << " [" << rootplayer.kyokumen.toSfen() << "] ";
 				search(tree);
+				rootnum++;
 
 				//ゲームが終了しているか調べる
 				const auto pl = LearnUtil::getPrincipalLeaf(root);
@@ -184,13 +196,14 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 				const auto bestchild = LearnUtil::choiceBestChild(root);
 				tree.proceed(bestchild);
 			}
+			learnedposnum += method->getSamplingPosNum();
 			//保険セーブ
 			delTree:
 			{
 				dw.save(tempgrad);
 				std::ofstream fs(tempinfo);
 				if (fs) {
-					fs << counter_itr << "\n" << counter_batch << "\n";
+					fs << datestring << "\n" << counter_itr << "\n" << counter_batch << "\n" << rootnum << "\n" << learnedposnum << "\n";
 				}
 			}
 			delete method;
@@ -199,8 +212,22 @@ void Learner::learn_start_by_randompos(const int batch,const int itr) {
 		//評価関数に勾配を反映
 		dw.updateEval();
 		Evaluator::save();
+		if ((((counter_itr + 1) % std::max(itr / 10, 1)) == 0)) {
+			const auto logpath = learnlogdir + "/" + std::to_string(counter_itr);
+			std::filesystem::create_directories(logpath);
+			Evaluator::save(logpath);
+			std::ofstream fs(logpath + "/log.txt");
+			if (fs) {
+				fs << rootnum << "\n" << learnedposnum << "\n";
+			}
+		}
 		dw.save(tempgrad);
 		counter_batch = 0;
+	}
+	std::ofstream fs("./log.txt", std::ios_base::app);
+	if (fs) {
+		fs << datestring<< " batch:" << batch << " iterate:" << itr <<
+			" roots:" << rootnum << " learnedpos:" << learnedposnum << "\n";
 	}
 	//保険セーブ消去
 	std::filesystem::remove(tempinfo);

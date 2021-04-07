@@ -6,14 +6,16 @@
 bool SearchAgent::leave_QsearchNode = false;
 int SearchAgent::drawmovenum = 320;
 
+std::atomic_bool SearchAgent::search_enable;
+std::atomic_uint64_t SearchAgent::time_stamp;
+std::atomic_uint SearchAgent::old_threads_num;
+
+
 SearchAgent::SearchAgent(SearchTree& tree, const double Ts, int seed)
 	:tree(tree), engine(seed), root(tree.getRoot()), Ts(Ts)
 {
-
-	if (root != nullptr)
-		alive = true;
-	else
-		alive = false;
+	status = state::search;
+	searching = false;
 	th = std::thread(&SearchAgent::loop, this);
 }
 
@@ -21,22 +23,51 @@ SearchAgent::SearchAgent(SearchAgent&& agent) noexcept
 	: tree(agent.tree), th(std::move(agent.th)), Ts(agent.Ts),
 	root(agent.root), engine(std::move(agent.engine))
 {
-	alive = agent.alive.load();
+	status = agent.status.load();
+	searching = agent.searching.load();
 }
 
-
+SearchAgent::~SearchAgent() {
+	status = state::terminate;
+	if (th.joinable()) th.join();
+}
 
 void SearchAgent::loop() {
-	while (alive) {
-		simulate(root);
+	using namespace std::chrono_literals;
+	std::uint64_t mystamp = 0;
+	while (status != state::terminate) {
+		if (old_threads_num > 0 && time_stamp != mystamp) {
+			old_threads_num--;
+			mystamp = time_stamp;
+		}
+		switch (status) {
+			case state::search: {
+				if (search_enable) simulate(tree.getRoot());
+				else std::this_thread::sleep_for(20ms);
+				break;
+			}
+			case state::gc: {
+				bool ok = deleteGarbage();
+				if (ok) status = state::search;
+				break;
+			}
+		}
 	}
 }
+
+//探索中かどうかを判定するフラグを管理するクラス オブジェクトが破棄される時に自動でフラグを戻してくれるので戻し忘れが無くて便利
+struct Searching {
+	Searching(std::atomic_bool& searching) :searching(searching) { searching = true; }
+	~Searching() { searching = false; }
+	std::atomic_bool& searching;
+};
 
 void SearchAgent::simulate(SearchNode* const root) {
 	using dn = std::pair<double, SearchNode*>;
 	using dd = std::pair<double, double>;
-	const double T_e = SearchNode::getTeval();
-	const double T_d = SearchNode::getTdepth();
+	Searching _searching(searching);
+	const double T_e = SearchTemperature::Te;
+	const double T_d = SearchTemperature::Td;
 	const double MateScoreBound = SearchNode::getMateScoreBound();
 	SearchNode* node = root;
 	player = tree.getRootPlayer();
@@ -44,7 +75,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 	std::vector<std::pair<uint64_t, Bammen>> k_history;
 	//選択
 	while (!node->isLeaf()) {
-		if (!alive) return;
+		if (!search_enable) return;
 		double CE = std::numeric_limits<double>::max();
 		std::vector<dn> evals; evals.reserve(node->children.size());
 		for (auto& child : node->children) {
@@ -64,7 +95,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 			}
 			return;
 		}
-		const double T_c = node->getTs(Ts);
+		const double T_c = SearchTemperature::getTs_atNode(Ts, *node);
 		double Z = 0;
 		for (const auto& eval : evals) {
 			Z += std::exp(-(eval.first - CE) / T_c);
@@ -85,6 +116,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 	}
 	//展開・評価
 	{
+		if (!search_enable) return;
 		//末端ノードが他スレッドで展開中になっていないかチェック
 		LeafGuard dredear(node);
 		if (!dredear.Result()) {
@@ -300,4 +332,88 @@ bool SearchAgent::checkRepetitiveCheck(const Kyokumen& kyokumen, const std::vect
 		}
 	}
 	return false;
+}
+
+//削除が完了したらtrueを返す
+bool SearchAgent::deleteGarbage() {
+	using namespace std::chrono_literals;
+	if (old_threads_num > 0) {
+		std::this_thread::sleep_for(10ms);
+		return false;
+	}
+	else {
+		return !tree.deleteGarbage();
+	}
+}
+
+AgentPool::AgentPool(SearchTree& tree) :tree(tree) {
+	SearchAgent::old_threads_num = 0;
+	SearchAgent::search_enable = false;
+	SearchAgent::time_stamp = std::random_device()();
+}
+
+void AgentPool::setup() {
+	assert(!SearchAgent::search_enable);
+	if (agents.size() < agent_num) {
+		for (std::size_t t = agents.size(); t < agent_num; t++) {
+			agents.push_back(std::unique_ptr<SearchAgent>(
+				new SearchAgent(tree, SearchTemperature::getTs((double)t / (agent_num - 1)), t)));
+		}
+	}
+	else if (agents.size() > agent_num) {
+		for (std::size_t t = agent_num; t < agents.size(); t++) {
+			agents[t]->status = SearchAgent::state::terminate;
+		}
+		agents.erase(agents.begin() + agent_num, agents.end());
+	}
+}
+
+void AgentPool::startSearch() {
+	SearchAgent::search_enable = true;
+}
+
+void AgentPool::pauseSearch() {
+	SearchAgent::search_enable = false;
+}
+
+void AgentPool::joinPause() {
+	using namespace std::chrono_literals;
+	SearchAgent::search_enable = false;
+	while (true) {
+		bool allpause = true;
+		for (const auto& agent : agents) if (agent->searching) allpause = false;
+		if (allpause) return;
+		std::this_thread::sleep_for(20ms);
+	}
+}
+
+
+void AgentPool::noticeProceed() {
+	assert(!SearchAgent::search_enable);
+	if (agent_num <= gc_num) return;
+	for (std::size_t t = agent_num - gc_num; t < agent_num; t++) {
+		const auto& agent = agents[t];
+		agent->status = SearchAgent::state::gc;
+	}
+	SearchAgent::old_threads_num = agent_num;
+	SearchAgent::time_stamp++;
+}
+
+void AgentPool::deleteTree() {
+	using namespace std::chrono_literals;
+	SearchAgent::search_enable = false;
+	tree.makeNewTree(Kyokumen(), {});
+	for (const auto& agent : agents) {
+		agent->status = SearchAgent::state::gc;
+	}
+	while (!tree.deleteGarbage()) { std::this_thread::sleep_for(20ms); }
+}
+
+void AgentPool::terminate() {
+	joinPause();
+	for (const auto& agent : agents) {
+		agent->status = SearchAgent::state::terminate;
+	}
+	agents.clear();
+	agent_num = 0;
 }
