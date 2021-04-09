@@ -12,7 +12,7 @@ std::atomic_uint SearchAgent::old_threads_num;
 
 
 SearchAgent::SearchAgent(SearchTree& tree, const double Ts, int seed)
-	:tree(tree), engine(seed), root(tree.getRoot()), Ts(Ts)
+	:tree(tree), engine(seed), Ts(Ts)
 {
 	status = state::search;
 	searching = false;
@@ -21,7 +21,7 @@ SearchAgent::SearchAgent(SearchTree& tree, const double Ts, int seed)
 
 SearchAgent::SearchAgent(SearchAgent&& agent) noexcept
 	: tree(agent.tree), th(std::move(agent.th)), Ts(agent.Ts),
-	root(agent.root), engine(std::move(agent.engine))
+	engine(std::move(agent.engine))
 {
 	status = agent.status.load();
 	searching = agent.searching.load();
