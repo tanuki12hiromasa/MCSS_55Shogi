@@ -5,7 +5,8 @@
 の5五将棋版である，芝浦少将です．
 
 ## 対局方法
-本プログラムはUSIに対応しており，USI対応の[５五将棋GUI](http://hgm.nubati.net/miniShogi.html)などを用いて対局が出来ます．
+本プログラムはUSIに対応しており，USI対応の[５五将棋GUI](http://hgm.nubati.net/miniShogi.html)などを用いて対局が出来ます．  
+評価関数パラメータは[こちら](https://drive.google.com/drive/folders/1wt_s3MZjg6PNEx5aNDFI0lyxlYhQJsvV?usp=sharing)からダウンロード出来ます．
 
 ## ライセンス
 本プログラムは[芝浦将棋Softmax](https://github.com/tanuki12hiromasa/ShogiStudyThird "ShogiStudyThird")の改変であり，またKPPT評価関数，KKPPT評価関数は[Apery](https://hiraokatakuya.github.io/apery/)を元にしているため，GPLv3に従います．

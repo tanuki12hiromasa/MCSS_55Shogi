@@ -143,7 +143,7 @@ void Commander::setOption(const std::vector<std::string>& token) {
 			Evaluator::setpath_input(token[4]);
 		}
 		else if (token[2] == "NumOfAgent") {
-			agentNum = std::stoi(token[4]);
+			agents.setAgentNum(std::stoi(token[4]));
 		}
 		else if (token[2] == "leave_qsearchNode") {
 			SearchAgent::setLeaveQSNode(token[4] == "true");

@@ -34,7 +34,6 @@ private:
 	bool deleteGarbage();
 
 	SearchTree& tree;
-	SearchNode* const root;
 	SearchPlayer player;
 	std::thread th;
 	const double Ts;
