@@ -79,7 +79,7 @@ void SamplingPGLeaf::update(SearchNode* const root, const SearchPlayer& rootplay
 	for (const auto& child : root->children) {
 		visited.clear();
 		const double pi = std::exp(-(child.eval - cmin) / T) / Z;
-		std::cout << pi << "\n";
+		//std::cout << pi << "\n";
 		const std::size_t p_sanpling_num = pi * sampling_num;
 		if (p_sanpling_num == 0)continue;
 		std::vector<Move> check1;

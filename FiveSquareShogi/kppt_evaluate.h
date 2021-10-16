@@ -14,6 +14,9 @@ namespace kppt {
 
 		static void setpath_input(const std::string& path) { ifolderpath = path; }
 		static void setpath_output(const std::string& path) { ofolderpath = path; }
+		static const std::string& getpath_input() { return ifolderpath; }
+		static const std::string& getpath_output() { return ofolderpath; }
+		static void use_dynamicPieceScore(const bool b) { dynamicPieceScore = b; }
 		
 		static void genFirstEvalFile(const std::string& folderpath);
 

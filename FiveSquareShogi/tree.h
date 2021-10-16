@@ -28,7 +28,8 @@ public:
 	const SearchPlayer& getRootPlayer()const { return rootPlayer; }
 	std::pair<unsigned, SearchNode*> findRepetition(const Kyokumen& kyokumen)const;//過去に同一局面が無かったか検索する なければ-1を返す
 	SearchNode* getRoot() const { return history.back(); }
-	SearchNode* getGameRoot() const { return history.front(); }
+	SearchNode* getGameRoot() const { if (!history.empty()) return history.front(); else return nullptr; }
+	const Kyokumen& getGameStartKyokumen() const { return startKyokumen; }
 	int getMoveNum() const { return history.size() - 1; }
 
 	void foutTree()const;
@@ -50,5 +51,7 @@ private:
 	std::mutex mtx_deleteTrees;
 
 	friend class Commander;
+	friend class Learner;
+	friend class LearnCommander;
 	friend class ShogiTest;
 };

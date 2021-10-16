@@ -9,6 +9,8 @@ double SearchNode::mateMass = 99999;
 double SearchNode::mateScore = 32000.0;//詰ませた側(勝った側)のscore
 double SearchNode::mateScoreBound = 28000.0;
 double SearchNode::mateOneScore = 20.0;
+double SearchNode::midRepScore = 28000 * 0.75;
+double SearchNode::drawScore = +200;
 int SearchNode::QS_depth = 8;
 int SearchNode::Es_FunctionCode = 18;
 double SearchNode::Es_c = 0.5;
@@ -69,7 +71,7 @@ void SearchNode::Children::sort() {
 }
 
 void SearchNode::Children::swap(SearchNode::Children& children) {
-	if (list && children.list) {
+	if (list || children.list) {
 		const auto temp_count = count;
 		count = children.count; children.count = temp_count;
 		const auto temp_list = list;
@@ -84,6 +86,15 @@ SearchNode::Children* SearchNode::Children::purge() {
 	list = nullptr;
 	count = 0;
 	return c;
+}
+
+void SearchNode::setFirstRepetitonToMateScore(bool b) {
+	if (b) {
+		midRepScore = mateScore;
+	}
+	else {
+		midRepScore = mateScoreBound * 0.75;
+	}
 }
 
 SearchNode::SearchNode() {
@@ -127,6 +138,10 @@ void SearchNode::addChildren(const std::vector<Move>& moves) {
 	children.sporn(moves);
 }
 
+void SearchNode::setExpanded() {
+	status = State::Expanded;
+}
+
 void SearchNode::setMateVariation(const double childmin) {
 	if (childmin > 0) {
 		eval = -childmin + mateOneScore;
@@ -162,15 +177,30 @@ void SearchNode::setDeclare() {
 	status = State::T;
 }
 
+void SearchNode::setDraw(const bool teban) {
+	origin_eval = teban ? drawScore : -drawScore;
+	eval = origin_eval;
+	status = State::Terminal;
+}
+
 void SearchNode::setRepetition(const bool teban) {
-	//deleteTree();
-	eval = teban ? -mateScore : mateScore;
-	origin_eval = eval.load();
+	origin_eval = teban ? -midRepScore : midRepScore;
+	eval = origin_eval;
+}
+
+void SearchNode::setRepetitiveEnd(const bool teban) {
+	origin_eval = teban ? -mateScore : mateScore;
+	eval = origin_eval;
 	mass = mateMass;
 	status = State::R;
 }
 
 void SearchNode::setRepetitiveCheck() {
+	origin_eval = midRepScore;
+	eval = origin_eval;
+}
+
+void SearchNode::setRepetitiveCheckmate() {
 	//deleteTree();
 	eval = mateScore;
 	origin_eval = mateScore;

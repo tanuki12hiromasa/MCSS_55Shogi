@@ -1,8 +1,22 @@
 ﻿#pragma once
 #include "kppt_param.h"
 
+#ifdef _LEARN
+#ifndef _LEARN_COMMANDER
+#define _EVAL_FLOAT
+#endif
+#endif
+
 namespace kppt {
+#ifndef _EVAL_FLOAT
+	using PieceScoreType = int;
+	using EvalElementTypeh = std::int16_t;
 	using EvalElementType = std::array<int16_t, 2>;
+#else
+	using PieceScoreType = float;
+	using EvalElementTypeh = float;
+	using EvalElementType = std::array<float, 2>;
+#endif
 	using KPPEvalElementType0 = EvalElementType[fe_end];
 	using KPPEvalElementType1 = KPPEvalElementType0[fe_end];
 	using KPPEvalElementType2 = KPPEvalElementType1[SquareNum];
@@ -10,9 +24,10 @@ namespace kppt {
 	using KKPEvalElementType1 = KKPEvalElementType0[SquareNum];
 	using KKPEvalElementType2 = KKPEvalElementType1[SquareNum];
 
-	extern std::array<int, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr;
+	extern std::array<PieceScoreType, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr;
 	extern KPPEvalElementType1* KPP;
 	extern KKPEvalElementType1* KKP;
+	extern bool dynamicPieceScore;
 	extern bool allocated;
 	inline int PieceScore(koma::Koma k) { return PieceScoreArr[static_cast<size_t>(k)]; }
 	inline int PieceScore(koma::Mochigoma m) { return PieceScoreArr[static_cast<size_t>(m)]; }
@@ -53,12 +68,12 @@ namespace kppt {
 		EvalSum operator-(const EvalSum& rhs) { return EvalSum(*this) -= rhs; }
 	};
 
-	inline std::array<std::int32_t, 2> operator += (std::array<std::int32_t, 2>& lhs, const std::array<std::int16_t, 2>& rhs) {
+	inline std::array<std::int32_t, 2> operator += (std::array<std::int32_t, 2>& lhs, const EvalElementType& rhs) {
 		lhs[0] += rhs[0];
 		lhs[1] += rhs[1];
 		return lhs;
 	}
-	inline std::array<std::int32_t, 2> operator -= (std::array<std::int32_t, 2>& lhs, const std::array<std::int16_t, 2>& rhs) {
+	inline std::array<std::int32_t, 2> operator -= (std::array<std::int32_t, 2>& lhs, const EvalElementType& rhs) {
 		lhs[0] -= rhs[0];
 		lhs[1] -= rhs[1];
 		return lhs;

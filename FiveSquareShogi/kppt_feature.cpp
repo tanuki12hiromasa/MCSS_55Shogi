@@ -4,9 +4,10 @@
 #include <fstream>
 
 namespace kppt {
-	std::array<int, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr;
+	std::array<PieceScoreType, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr;
 	KPPEvalElementType1* KPP;
 	KKPEvalElementType1* KKP;
+	bool dynamicPieceScore = false;
 	bool allocated = false;
 
 	void EvalList::set(const Kyokumen& kyokumen) {
@@ -56,6 +57,18 @@ namespace kppt {
 			memset(KPP, 0, sizeof(KPPEvalElementType1) * (size_t)SquareNum);
 			memset(KKP, 0, sizeof(KKPEvalElementType1) * (size_t)SquareNum);
 		}
+#ifndef _EVAL_FLOAT
+		if(dynamicPieceScore) {
+			std::ifstream fs(folderpath + "/Piece.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+			else {
+				for (auto& p : PieceScoreArr) {
+					fs.read((char*)&p, sizeof(p));
+				}
+			}
+		}
 		{
 			std::ifstream fs(folderpath + "/KPP.bin", std::ios::binary);
 			if (!fs) {
@@ -80,10 +93,133 @@ namespace kppt {
 				fs.read(it, size);
 			}
 		}
+#else
+
+		bool fPiece = false, fKPP = false, fKKP = false;
+		if (dynamicPieceScore) {
+			std::ifstream fs(folderpath + "/fPiece.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "warning:file(" << folderpath << "/fPiece.bin) cannot open" << std::endl;
+			}
+			else {
+				for (auto& p : PieceScoreArr) {
+					fs.read((char*)&p, sizeof(p));
+				}
+				fPiece = true;
+			}
+		}
+		{
+			std::ifstream fs(folderpath + "/fKPP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "warning:file(fKPP.bin) cannot open" << std::endl;
+			}
+			else {
+				auto end = (char*)KPP + sizeof(KPPEvalElementType2);
+				for (auto it = (char*)KPP; it < end; it += (1 << 30)) {
+					size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+					fs.read(it, size);
+				}
+				fKPP = true;
+			}
+		}
+		{
+			std::ifstream fs(folderpath + "/fKKP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "warning:file(fKKP.bin) cannot open" << std::endl;
+			}
+			else {
+				auto end = (char*)KKP + sizeof(KKPEvalElementType2);
+				for (auto it = (char*)KKP; it < end; it += (1 << 30)) {
+					size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+					fs.read(it, size);
+				}
+				fKKP = true;
+			}
+		}
+
+		using iEvalElementType = std::array<int16_t, 2>;
+		using iKPPEvalElementType0 = iEvalElementType[fe_end];
+		using iKPPEvalElementType1 = iKPPEvalElementType0[fe_end];
+		using iKPPEvalElementType2 = iKPPEvalElementType1[SquareNum];
+		using iKKPEvalElementType0 = iEvalElementType[fe_end];
+		using iKKPEvalElementType1 = iKKPEvalElementType0[SquareNum];
+		using iKKPEvalElementType2 = iKKPEvalElementType1[SquareNum];
+
+		if (dynamicPieceScore && !fPiece) {
+			using iPieceScoreType = int;
+			std::ifstream fs(folderpath + "/Piece.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+			else {
+				for (auto& p : PieceScoreArr) {
+					iPieceScoreType iP;
+					fs.read((char*)&iP, sizeof(iP));
+					p = iP;
+				}
+			}
+		}
+		if(!fKPP){
+			std::ifstream fs(folderpath + "/KPP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(KPP.bin) cannot open" << std::endl;
+				return;
+			}
+			iKPPEvalElementType1* iKPP = new iKPPEvalElementType1[SquareNum];
+			auto end = (char*)iKPP + sizeof(iKPPEvalElementType2);
+			for (auto it = (char*)iKPP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.read(it, size);
+			}
+			for (unsigned k = 0; k < SquareNum; k++) {
+				for (unsigned p1 = 0; p1 < fe_end; p1++) {
+					for (unsigned p2 = 0; p2 < fe_end; p2++) {
+						KPP[k][p1][p2][0] = iKPP[k][p1][p2][0];
+						KPP[k][p1][p2][1] = iKPP[k][p1][p2][1];
+					}
+				}
+			}
+			delete[] iKPP;
+		}
+		if(!fKKP){
+			std::ifstream fs(folderpath + "/KKP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(KKP.bin) cannot open" << std::endl;
+				return;
+			}
+			iKKPEvalElementType1* iKKP = new iKKPEvalElementType1[SquareNum];
+			auto end = (char*)iKKP + sizeof(iKKPEvalElementType2);
+			for (auto it = (char*)iKKP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.read(it, size);
+			}
+			for (unsigned sk = 0; sk < SquareNum; sk++) {
+				for (unsigned gk = 0; gk < SquareNum; gk++) {
+					for (unsigned p = 0; p < fe_end; p++) {
+						KKP[sk][gk][p][0] = iKKP[sk][gk][p][0];
+						KKP[sk][gk][p][1] = iKKP[sk][gk][p][1];
+					}
+				}
+			}
+			delete[] iKKP;
+		}
+#endif
 		std::cout << "Parameters have been read from "<< folderpath << std::endl;
 	}
 
 	void kppt_feat::save(const std::string& folderpath) {
+#ifndef _EVAL_FLOAT
+		if (dynamicPieceScore) {
+			std::ofstream fs(folderpath + "/Piece.bin", std::ios::binary);
+			if (fs) {
+				for (auto& p : PieceScoreArr) {
+					fs.write((char*)&p, sizeof(p));
+				}
+			}
+			else {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+		}
 		{
 			std::ofstream fs(folderpath + "/KPP.bin", std::ios::binary);
 			if (!fs) {
@@ -108,6 +244,107 @@ namespace kppt {
 				fs.write(it, size);
 			}
 		}
+#else
+		if (dynamicPieceScore) {
+			std::ofstream fs(folderpath + "/fPiece.bin", std::ios::binary);
+			if (fs) {
+				for (auto& p : PieceScoreArr) {
+					fs.write((char*)&p, sizeof(p));
+				}
+			}
+			else {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+		}
+		{
+			std::ofstream fs(folderpath + "/fKPP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(fKPP.bin) cannot open" << std::endl;
+				return;
+			}
+			auto end = (char*)KPP + sizeof(KPPEvalElementType2);
+			for (auto it = (char*)KPP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.write(it, size);
+			}
+		}
+		{
+			std::ofstream fs(folderpath + "/fKKP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(fKKP.bin) cannot open" << std::endl;
+				return;
+			}
+			auto end = (char*)KKP + sizeof(KKPEvalElementType2);
+			for (auto it = (char*)KKP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.write(it, size);
+			}
+		}
+		using iEvalElementType = std::array<int16_t, 2>;
+		using iKPPEvalElementType0 = iEvalElementType[fe_end];
+		using iKPPEvalElementType1 = iKPPEvalElementType0[fe_end];
+		using iKPPEvalElementType2 = iKPPEvalElementType1[SquareNum];
+		using iKKPEvalElementType0 = iEvalElementType[fe_end];
+		using iKKPEvalElementType1 = iKKPEvalElementType0[SquareNum];
+		using iKKPEvalElementType2 = iKKPEvalElementType1[SquareNum];
+		if (dynamicPieceScore) {
+			using iPieceScoreType = int;
+			std::ofstream fs(folderpath + "/Piece.bin", std::ios::binary);
+			if (fs) {
+				for (const auto& p : PieceScoreArr) {
+					iPieceScoreType iP = p;
+					fs.write((char*)&iP, sizeof(iP));
+				}
+			}
+			else {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+		}
+		{
+			std::ofstream fs(folderpath + "/KPP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(KPP.bin) cannot open" << std::endl;
+				return;
+			}
+			iKPPEvalElementType1* iKPP = new iKPPEvalElementType1[SquareNum];
+			for (unsigned k = 0; k < SquareNum; k++) {
+				for (unsigned p1 = 0; p1 < fe_end; p1++) {
+					for (unsigned p2 = 0; p2 < fe_end; p2++) {
+						iKPP[k][p1][p2][0] = KPP[k][p1][p2][0];
+						iKPP[k][p1][p2][1] = KPP[k][p1][p2][1];
+					}
+				}
+			}
+			auto end = (char*)iKPP + sizeof(iKPPEvalElementType2);
+			for (auto it = (char*)iKPP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.write(it, size);
+			}
+			delete[] iKPP;
+		}
+		{
+			std::ofstream fs(folderpath + "/KKP.bin", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(KKP.bin) cannot open" << std::endl;
+				return;
+			}
+			iKKPEvalElementType1* iKKP = new iKKPEvalElementType1[SquareNum];
+			for (unsigned sk = 0; sk < SquareNum; sk++) {
+				for (unsigned gk = 0; gk < SquareNum; gk++) {
+					for (unsigned p = 0; p < fe_end; p++) {
+						iKKP[sk][gk][p][0] = KKP[sk][gk][p][0];
+						iKKP[sk][gk][p][1] = KKP[sk][gk][p][1];
+					}
+				}
+			}
+			auto end = (char*)iKKP + sizeof(iKKPEvalElementType2);
+			for (auto it = (char*)iKKP; it < end; it += (1 << 30)) {
+				size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
+				fs.write(it, size);
+			}
+			delete[] iKKP;
+		}
+#endif
 		std::cout << "Parameters have been written to " << folderpath << std::endl;
 	}
 

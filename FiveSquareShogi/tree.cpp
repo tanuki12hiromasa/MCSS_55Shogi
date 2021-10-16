@@ -14,7 +14,7 @@ SearchTree::SearchTree()
 SearchTree::~SearchTree() {
 	while (deleteGarbage());
 	auto root = getGameRoot();
-	delete root;
+	if(root) delete root;
 }
 
 void SearchTree::set(const std::vector<std::string>& usitokens) {
@@ -23,10 +23,46 @@ void SearchTree::set(const std::vector<std::string>& usitokens) {
 }
 
 void SearchTree::set(const Kyokumen& startpos, const std::vector<Move>& usihis) {
-	if (history.empty() || startKyokumen != startpos || history.size() > usihis.size() || !continuous_tree) {
+	if (history.empty() || startKyokumen != startpos || history.size() > usihis.size() || (!continuous_tree && !leave_branchNode)) {
 		//初期状態ならmakenewtreeで初期化
 		//あるいは初期局面が異なるか与えられた棋譜が内部の棋譜より短いので探索木を作り直す
 		makeNewTree(startpos, usihis);
+		return;
+	}
+	else if (!continuous_tree) {
+		//探索木を残して、且つ次の探索には利用しない場合
+		int i;
+		for (i = 0; i < history.size() - 1; i++) {
+			if (history[i + 1ull]->move != usihis[i]) {
+				//与えられた棋譜が内部の棋譜と一致しないので探索木を作り直す
+				makeNewTree(startpos, usihis);
+				return;
+			}
+		}
+		//提示局面の手前までは通常通り進める
+		for (; i < usihis.size() - 1; i++) {
+			SearchNode* parent = getRoot();
+			const Move nextmove = usihis[i];
+			SearchNode* nextNode = nullptr;
+			if (parent->isLeaf() || parent->isTerminal()) {
+				parent->status = SearchNode::State::Expanded;
+			}
+			for (auto& child : parent->children) {
+				//子ノードの中から棋譜での次の手を探す
+				if (child.move == nextmove) {
+					nextNode = &child;
+					break;
+				}
+			}
+			if (nextNode == nullptr) {
+				nextNode = addNewChild(parent, nextmove);
+			}
+			proceed(nextNode);
+		}
+		//提示局面を新しい木にする
+		auto nextroot = new SearchNode(usihis.back());
+		proceed(nextroot);
+
 		return;
 	}
 	else {
@@ -98,6 +134,7 @@ void SearchTree::makeNewTree(const Kyokumen& startpos, const std::vector<Move>& 
 		history.clear();
 	}
 	startKyokumen = startpos;
+	historymap.emplace(startKyokumen.getHash(), std::make_pair(startKyokumen.getBammen(), 0));
 	history.push_back(new SearchNode(Move(koma::Position::NullMove, koma::Position::NullMove, false)));
 	rootPlayer = SearchPlayer(startKyokumen);
 	for (const auto& usimove : usihis) {
@@ -143,9 +180,9 @@ void SearchTree::proceed(SearchNode* node) {
 			}
 		}
 	}
-	historymap.emplace(rootPlayer.kyokumen.getHash(), std::make_pair(rootPlayer.kyokumen.getBammen(), history.size() - 1));
 	rootPlayer.kyokumen.proceed(node->move);
 	rootPlayer.feature.set(rootPlayer.kyokumen);
+	historymap.emplace(rootPlayer.kyokumen.getHash(), std::make_pair(rootPlayer.kyokumen.getBammen(), history.size()));
 	history.push_back(node);
 }
 

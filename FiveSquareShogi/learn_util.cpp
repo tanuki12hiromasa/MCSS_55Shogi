@@ -3,6 +3,19 @@
 
 double LearnUtil::pTb = 0.1;//評価関数をシグモイド関数に写像した場合の方策の温度は、(元の温度)*(写像先の標準的な評価値差)/(元の標準的な評価値差)で求められる。
 
+double LearnUtil::getChildrenZ(const SearchNode* const parent, const double T, double& CE) {
+	if (parent->children.empty()) return 1;
+	CE = std::numeric_limits<double>::max();
+	for (const auto& child : parent->children) {
+		CE = std::min(CE, child.eval.load());
+	}
+	double Z = 0;
+	for (const auto& child : parent->children) {
+		Z += std::exp(-(child.eval - CE) / T);
+	}
+	return Z;
+}
+
 SearchNode* LearnUtil::choicePolicyRandomChild(const SearchNode* const root, const double T, double pip) {
 	using dn = std::pair<double, SearchNode*>;
 	double CE = std::numeric_limits<double>::max();
@@ -113,6 +126,10 @@ SearchPlayer LearnUtil::getQSBest(const SearchNode* const root, SearchPlayer& pl
 		player.recede(m, captured, cache);
 	}
 	return bestplayer;
+}
+
+SearchPlayer LearnUtil::getQSBest(const SearchNode* const root, SearchPlayer& player) {
+	return getQSBest(root, player, SearchNode::getQSdepth());
 }
 
 LearnVec LearnUtil::getGrad(const SearchNode* const root, const SearchPlayer& rootplayer, bool teban, unsigned long long samplingnum, const int qsdepth) {
@@ -307,4 +324,93 @@ double LearnUtil::BackProb(const SearchNode& parent, const SearchNode& child, co
 		Z += std::exp(-(c.eval + parent.eval) / T);
 	}
 	return std::exp(-(child.eval + parent.eval) / T) / Z;
+}
+
+double LearnUtil::ResultToProb(GameResult result, bool teban) {
+	switch (result)
+	{
+		case GameResult::SenteWin:
+			return teban ? 1.0 : 0.0;
+		case GameResult::GoteWin:
+			return teban ? 0.0 : 1.0;
+		case GameResult::Draw:
+		default:
+			return 0.5;
+	}
+}
+
+double LearnUtil::ResultToReward(const GameResult result, const bool teban, const double win, const double draw, const double lose) {
+	switch (result)
+	{
+		case GameResult::SenteWin:
+			return teban ? win : lose;
+		case GameResult::GoteWin:
+			return teban ? lose : win;
+		case GameResult::Draw:
+		default:
+			return draw;
+	}
+}
+
+double LearnUtil::ResultToProb(MyGameResult result) {
+	switch (result)
+	{
+		case MyGameResult::PlayerWin:
+			return 1.0;
+		case MyGameResult::PlayerLose:
+			return 0;
+		case MyGameResult::Draw: default:
+			return 0.5;
+	}
+}
+
+double LearnUtil::ResultToReward(const MyGameResult result, const double win, const double draw, const double lose) {
+	switch (result)
+	{
+		case MyGameResult::PlayerWin:
+			return win;
+		case MyGameResult::PlayerLose:
+			return lose;
+		case MyGameResult::Draw: default:
+			return draw;
+	}
+}
+
+std::string LearnUtil::ResultToString(const GameResult& result) {
+		switch (result)
+	{
+		case GameResult::SenteWin:
+			return "sw";
+		case GameResult::GoteWin:
+			return "gw";
+		case GameResult::Draw:
+		default:
+			return "draw";
+	}
+}
+
+std::string LearnUtil::ResultToString(const MyGameResult& result) {
+	switch (result)
+	{
+		case MyGameResult::PlayerWin:
+			return "win";
+		case MyGameResult::PlayerLose:
+			return "lose";
+		case MyGameResult::Draw: default:
+			return "draw";
+	}
+}
+
+double LearnUtil::change_evalTs_to_probTs(const double T) {
+	return T * 0.2 / 500;
+}
+
+std::string LearnUtil::getDateString() {
+	std::time_t now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+	std::string s(30, '\0');
+	std::tm ima;
+	localtime_s(&ima, &now);
+	std::strftime(&s[0], s.size(), "%Y%m%d-%H%M", &ima);
+	s.resize(s.find('\0'));
+	return s;
 }
