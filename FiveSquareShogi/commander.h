@@ -6,7 +6,7 @@
 class Commander {
 public:
 	static void execute(const std::string&);
-private:
+protected:
 	Commander();
 	~Commander();
 	static void coutOption();
@@ -19,6 +19,8 @@ private:
 	void info();
 	void chakushu(SearchNode* const bestmove);
 	void position(const std::vector<std::string>& tokens);
+
+	void showKifuFigure();
 
 	SearchTree tree;
 	AgentPool agents{ tree };

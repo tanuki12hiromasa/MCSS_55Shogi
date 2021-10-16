@@ -3,9 +3,12 @@
 #include "move_gen.h"
 #include "kppt_evaluate.h"
 #include "temperature.h"
+#include "random.h"
 #include <random>
 #include <thread>
 #include <functional>
+
+//#define EXPAND_GRANDCHILDREN //探索での展開時に孫ノードまで展開するオプション
 
 class SearchAgent {
 public:
@@ -19,7 +22,7 @@ private:
 		search, gc, terminate
 	};
 public:
-	SearchAgent(SearchTree& tree, const double Ts, int seed);
+	SearchAgent(SearchTree& tree, const double Ts, const Random::xoshiro256p& seed);
 	SearchAgent(SearchAgent&&)noexcept;
 	~SearchAgent();
 	SearchAgent() = delete;
@@ -30,6 +33,7 @@ public:
 private:
 	void simulate(SearchNode* const root);
 	size_t qsimulate(SearchNode* const root, SearchPlayer& player, const int hislength);
+	bool checkRepetition(SearchNode* const node, const Kyokumen& kyokumen, const std::vector<SearchNode*>& history, const std::vector<std::pair<std::uint64_t, Bammen>>& k_history);
 	bool checkRepetitiveCheck(const Kyokumen& k, const std::vector<SearchNode*>& searchhis, const SearchNode* const latestRepnode)const;
 	bool deleteGarbage();
 
@@ -45,8 +49,7 @@ private:
 	static std::atomic_uint old_threads_num;
 
 	//値域 [0,1.0) のランダムな値
-	std::uniform_real_distribution<double> random{ 0, 1.0 };
-	std::mt19937_64 engine; //初期シードはコンストラクタで受け取る
+	Random::xoshiro256p random; //初期シードはコンストラクタで受け取る
 
 	friend class ShogiTest;
 	friend class AgentPool;

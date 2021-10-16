@@ -6,8 +6,8 @@
 
 namespace kppt {
 
-	std::string kppt_evaluator::ifolderpath = "data/learn/kppt";
-	std::string kppt_evaluator::ofolderpath = "data/learn/kppt";
+	std::string kppt_evaluator::ifolderpath = "data/kppt";
+	std::string kppt_evaluator::ofolderpath = "data/kppt";
 
 	void kppt_evaluator::init() {
 		kppt_feat::init(ifolderpath);
@@ -65,6 +65,18 @@ namespace kppt {
 				fs.write(it, size);
 			}
 		}
+		if (dynamicPieceScore) {
+			const std::array<PieceScoreType, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr = { 0 };
+			std::ofstream fs(folderpath + "/Piece.bin", std::ios::binary);
+			if (fs) {
+				for (auto& p : PieceScoreArr) {
+					fs.write((char*)&p, sizeof(p));
+				}
+			}
+			else {
+				std::cerr << "error:file(" << folderpath << "/Piece.bin) cannot open" << std::endl;
+			}
+		}
 	}
 
 	void kppt_evaluator::print(int iskpp) {
@@ -92,5 +104,6 @@ namespace kppt {
 				}
 			}
 		}
+
 	}
 }

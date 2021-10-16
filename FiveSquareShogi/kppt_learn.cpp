@@ -1,6 +1,7 @@
 ﻿#include "kppt_learn.h"
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 
 namespace kppt {
 	void kppt_paramVector::EvalClamp(std::int16_t absmax) {
@@ -51,7 +52,9 @@ namespace kppt {
 		reset();
 	}
 
-	kppt_paramVector::kppt_paramVector(kppt_paramVector&& rhs) noexcept {
+	kppt_paramVector::kppt_paramVector(kppt_paramVector&& rhs) noexcept :
+		PieceScoreArr(std::move(rhs.PieceScoreArr))
+	{
 		KPP = rhs.KPP;
 		KKP = rhs.KKP;
 		rhs.KPP = nullptr;
@@ -82,6 +85,9 @@ namespace kppt {
 		for (int i = 0; i < lkkptnum; i++) {
 			kkp[i] = 0;
 		}
+		for (auto& p : PieceScoreArr) {
+			p = 0;
+		}
 	}
 
 	inline void kpp_addGrad(EvalVectorFloat* const kpp, const int kpos, const int k, const int l,const float bg,const float tg) {
@@ -95,6 +101,44 @@ namespace kppt {
 		kkp[kkptToLkkptnum(skpos, gkpos, k, 1)] += tg;
 		kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 0)] += bg;
 		kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 1)] += tg;
+	}
+	void kppt::kppt_paramVector::piece_addGrad(const float scalar, const Kyokumen& kyokumen) {
+		{ //歩
+			const int fu = (int)kyokumen.getEachBB(koma::Koma::s_Fu).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Fu).popcount();
+			PieceScoreArr[0] += scalar * fu;
+		}
+		{ //銀
+			const int gin = (int)kyokumen.getEachBB(koma::Koma::s_Gin).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Gin).popcount();
+			PieceScoreArr[1] += scalar * gin;
+		}
+		{ //角
+			const int kaku = (int)kyokumen.getEachBB(koma::Koma::s_Kaku).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Kaku).popcount();
+			PieceScoreArr[2] += scalar * kaku;
+		}
+		{ //飛
+			const int hi = (int)kyokumen.getEachBB(koma::Koma::s_Hi).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Hi).popcount();
+			PieceScoreArr[3] += scalar * hi;
+		}
+		{ //金
+			const int kin = (int)kyokumen.getEachBB(koma::Koma::s_Kin).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Kin).popcount();
+			PieceScoreArr[4] += scalar * kin;
+		}
+		{ //と金
+			const int nfu = (int)kyokumen.getEachBB(koma::Koma::s_nFu).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_nFu).popcount();
+			PieceScoreArr[5] += scalar * nfu;
+		}
+		{ //成銀
+			const int ngin = (int)kyokumen.getEachBB(koma::Koma::s_nGin).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_nGin).popcount();
+			PieceScoreArr[6] += scalar * ngin;
+		}
+		{ //馬
+			const int uma = (int)kyokumen.getEachBB(koma::Koma::s_nKaku).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_nKaku).popcount();
+			PieceScoreArr[7] += scalar * uma;
+		}
+		{ //龍
+			const int ryu = (int)kyokumen.getEachBB(koma::Koma::s_nHi).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_nHi).popcount();
+			PieceScoreArr[8] += scalar * ryu;
+		}
 	}
 
 	void kppt_paramVector::addGrad(const float scalar,const SearchPlayer& player) {
@@ -120,6 +164,7 @@ namespace kppt {
 			kkp_addGrad(kkp, skpos, gkpos, k0, bammenscalar, tebanscalar);
 			kkp_addGrad(kkp, invgkpos, invskpos, k1, -bammenscalar, -tebanscalar);
 		}
+		piece_addGrad(scalar, player.kyokumen);
 	}
 
 	void kppt_paramVector::clamp(float absmax) {
@@ -140,6 +185,14 @@ namespace kppt {
 				KKP[i] = -absmax;
 			}
 		}
+		for (size_t i = 0; i < lpiecenum; i++) {
+			if (PieceScoreArr[i] > absmax) {
+				PieceScoreArr[i] = absmax;
+			}
+			else if (PieceScoreArr[i] < -absmax) {
+				PieceScoreArr[i] = -absmax;
+			}
+		}
 	}
 
 	void kppt_paramVector::updateEval() {
@@ -147,7 +200,7 @@ namespace kppt {
 		for (unsigned k = 0; k < SquareNum; k++) {
 			for (unsigned p1 = 0; p1 < fe_end; p1++) {
 				for (unsigned p2 = 0; p2 < p1; p2++) {
-					int16_t val = KPP[kpptToLkpptnum(k, p1, p2, 0)];
+					EvalElementTypeh val = KPP[kpptToLkpptnum(k, p1, p2, 0)];
 					kppt::KPP[k][p1][p2][0] += val; kppt::KPP[k][p2][p1][0] += val;
 					KPP[kpptToLkpptnum(k, p1, p2, 0)] -= val;
 					val = KPP[kpptToLkpptnum(k, p1, p2, 1)];
@@ -159,13 +212,28 @@ namespace kppt {
 		for (unsigned sk = 0; sk < SquareNum; sk++) {
 			for (unsigned gk = 0; gk < SquareNum; gk++) {
 				for (unsigned p = 0; p < fe_end; p++) {
-					int16_t val = KKP[kkptToLkkptnum(sk, gk, p, 0)];
+					EvalElementTypeh val = KKP[kkptToLkkptnum(sk, gk, p, 0)];
 					kppt::KKP[sk][gk][p][0] += val;
 					KKP[kkptToLkkptnum(sk, gk, p, 0)] -= val;
 					val = KKP[kkptToLkkptnum(sk, gk, p, 1)];
 					kppt::KKP[sk][gk][p][1] += val;
 					KKP[kkptToLkkptnum(sk, gk, p, 1)] -= val;
 				}
+			}
+		}
+		if (dynamicPieceScore) {
+			for (size_t i = 0; i < lpiecenum_plain; i++) {
+				const PieceScoreType val = PieceScoreArr[i];
+				kppt::PieceScoreArr[i] += val;
+				kppt::PieceScoreArr[i + 10] -= val;
+				PieceScoreArr[i] -= val;
+			}
+			//王の分を学習時に数えていないので、その分飛ばす
+			for (size_t i = lpiecenum_plain; i < lpiecenum; i++) {
+				const PieceScoreType val = PieceScoreArr[i];
+				kppt::PieceScoreArr[i + 1] += val;
+				kppt::PieceScoreArr[i + 11] -= val;
+				PieceScoreArr[i] -= val;
 			}
 		}
 	}
@@ -212,6 +280,16 @@ namespace kppt {
 			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
 			fs.write(it, size);
 		}
+		if (dynamicPieceScore) {
+			std::ofstream fs_p(path + "p", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(piece) canot generate" << std::endl;
+				return;
+			}
+			for (const auto& p : PieceScoreArr) {
+				fs_p.write((char*)&p, sizeof(p));
+			}
+		}
 	}
 
 	void kppt_paramVector::load(const std::string& path) {
@@ -227,6 +305,16 @@ namespace kppt {
 		for (auto it = (char*)KKP, end = (char*)KKP + sizeof(KKPEvalVectorFloat); it < end; it += (1 << 30)) {
 			size_t size = (it + (1 << 30) < end ? (1 << 30) : end - it);
 			fs.read(it, size);
+		}
+		if (dynamicPieceScore) {
+			std::ifstream fs_p(path + "p", std::ios::binary);
+			if (!fs) {
+				std::cerr << "error:file(piece) canot open" << std::endl;
+				return;
+			}
+			for (const auto& p : PieceScoreArr) {
+				fs_p.read((char*)&p, sizeof(p));
+			}
 		}
 	}
 
@@ -259,5 +347,119 @@ namespace kppt {
 				}
 			}
 		}
+		if(dynamicPieceScore){
+			cout << "show Piece" << endl;
+			for (int i = 0; i < lpiecenum; i++) {
+				cout << i << ":" << PieceScoreArr[i] << " ";
+			}
+			cout << endl;
+		}
+	}
+
+	bool kppt_paramVector::operator==(const kppt_paramVector& rhs)const {
+		for (size_t i = 0; i < lkpptnum; i++) {
+			if (KPP[i] != rhs.KPP[i]) return false;
+		}
+		for (size_t i = 0; i < lkkptnum; i++) {
+			if (KKP[i] != rhs.KKP[i]) return false;
+		}
+		if (dynamicPieceScore && (PieceScoreArr != rhs.PieceScoreArr)) { 
+			return false; 
+		}
+		return true;
+	}
+
+	void Adam::updateEval(kppt_paramVector& dw) {
+		t++;
+		const auto b1t = std::pow(b1, t);
+		const auto b2t = std::pow(b2, t);
+		for (unsigned k = 0; k < SquareNum; k++) {
+			for (unsigned p1 = 0; p1 < fe_end; p1++) {
+				for (unsigned p2 = 0; p2 < p1; p2++) {
+					{
+						const auto idx = kpptToLkpptnum(k, p1, p2, 0);
+						const auto val = dw.KPP[idx];
+						mt.KPP[idx] = mt.KPP[idx] * b1 + (1 - b1) * val;
+						vt.KPP[idx] = vt.KPP[idx] * b2 + (1 - b2) * val * val;
+						const double dwt = -alpha * (mt.KPP[idx] / (1 - b1t)) / (std::sqrt(vt.KPP[idx] / (1 - b2t)) + epsilon);
+						kppt::KPP[k][p1][p2][0] += dwt; kppt::KPP[k][p2][p1][0] += dwt;
+						/*if (std::abs(dwt) > 0) {
+							std::cout << "t:"<< t << " val:" << val;
+							std::cout << " mt,vt:" << mt.KPP[idx] << "," << vt.KPP[idx];
+							std::cout << " dwt:" << dwt;
+							std::cout << "\n";
+						}*/
+						dw.KPP[idx] = 0;
+					}
+					{
+						const auto idx = kpptToLkpptnum(k, p1, p2, 1);
+						const double val = dw.KPP[idx];
+						mt.KPP[idx] = mt.KPP[idx] * b1 + (1 - b1) * val;
+						vt.KPP[idx] = vt.KPP[idx] * b2 + (1 - b2) * val * val;
+						const double dwt = -alpha * (mt.KPP[idx] / (1 - b1t)) / (std::sqrt(vt.KPP[idx] / (1 - b2t)) + epsilon);
+						kppt::KPP[k][p1][p2][1] += dwt; kppt::KPP[k][p2][p1][1] += dwt;
+						dw.KPP[idx] = 0;
+					}
+				}
+			}
+		}
+		for (unsigned sk = 0; sk < SquareNum; sk++) {
+			for (unsigned gk = 0; gk < SquareNum; gk++) {
+				for (unsigned p = 0; p < fe_end; p++) {
+					{
+						const auto idx = kkptToLkkptnum(sk, gk, p, 0);
+						const auto val = dw.KKP[idx];
+						mt.KKP[idx] = mt.KKP[idx] * b1 + (1 - b1) * val;
+						vt.KKP[idx] = vt.KKP[idx] * b2 + (1 - b2) * val * val;
+						const double dwt = -alpha * (mt.KKP[idx] / (1 - b1t)) / (std::sqrt(vt.KKP[idx] / (1 - b2t)) + epsilon);
+						kppt::KKP[sk][gk][p][0] += dwt;
+						/*if (std::abs(dwt) > 0) {
+							std::cout << "t:" << t << " val:" << val;
+							std::cout << " mt,vt:" << mt.KKP[idx] << "," << vt.KKP[idx];
+							std::cout << " dwt:" << std::fixed << std::setprecision(6) << dwt;
+							std::cout << "\n";
+						}*/
+						dw.KKP[idx] = 0;
+					}
+					{
+						const auto idx = kkptToLkkptnum(sk, gk, p, 1);
+						const auto val = dw.KKP[idx];
+						mt.KKP[idx] = mt.KKP[idx] * b1 + (1 - b1) * val;
+						vt.KKP[idx] = vt.KKP[idx] * b2 + (1 - b2) * val * val;
+						const double dwt = -alpha * (mt.KKP[idx] / (1 - b1t)) / (std::sqrt(vt.KKP[idx] / (1 - b2t)) + epsilon);
+						kppt::KKP[sk][gk][p][1] += dwt;
+						dw.KKP[idx] = 0;
+					}
+				}
+			}
+		}
+		if (dynamicPieceScore) {
+			for (size_t i = 0; i < lpiecenum; i++) {
+				const auto val = dw.PieceScoreArr[i];
+				mt.PieceScoreArr[i] = mt.PieceScoreArr[i] * b1 + (1 - b1) * val;
+				vt.PieceScoreArr[i] = vt.PieceScoreArr[i] * b2 + (1 - b2) * val * val;
+				const double dwt = -alpha * (mt.PieceScoreArr[i] / (1 - b1t)) / (std::sqrt(vt.PieceScoreArr[i] / (1 - b2t)) + epsilon);
+				kppt::PieceScoreArr[i] += dwt;
+				dw.PieceScoreArr[i] = 0;
+			}
+		}
+	}
+
+	void Adam::save(const std::string& path) {
+		std::filesystem::create_directories(path);
+		{
+			std::ofstream fs(path + "/adam.bin");
+			fs << t << std::endl;
+		}
+		mt.save(path + "/mt.bin");
+		vt.save(path + "/vt.bin");
+	}
+	void Adam::load(const std::string& path) {
+		{
+			std::ifstream fs(path + "/adam.bin");
+			fs >> t;
+		}
+		mt.load(path + "/mt.bin");
+		vt.load(path + "/vt.bin");
 	}
 }

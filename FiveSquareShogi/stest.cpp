@@ -33,25 +33,49 @@ void ShogiTest::test() {
 	BBkiki::init();
 	Evaluator::init();
 	std::cout << "initialized." << std::endl;
+#if 1
+	{
+		std::string sfen = "position startpos moves 3e3d 4a5b 3d2c 5b4a 3d2c";
+		Kyokumen kyokumen(usi::split(sfen, ' '));
+		kyokumen.proceed(Move(14, 13, false));
+		kyokumen.proceed(Move(15, 21, false));
+		kyokumen.proceed(Move(13, 7, false));
+		kyokumen.proceed(Move(21, 15, false));
+		kyokumen.proceed(Move(9, 17, false));
+		Move move(9, 17, false);
+		const auto moves = MoveGenerator::genMove(move, kyokumen);
+		for (const auto m : moves) {
+			std::cout << m.toUSI() << " ";
+		}
+		std::cout << std::endl;
+	}
+#endif
 #if 0
 	{
 		Learner lrn;
 		LearnVec v;
 		v.KKP[15] = 12.35;
+		v.KKP[14] = 21.2;
 		v.KPP[66] = -9.2;
-		v.showLearnVec_kkpt(0.1);
-		v.showLearnVec_kppt(0.1);
+		v.print(0.1, 1);
+		v.print(0.1, 0);
 		v.save("test.bin");
 		LearnVec e;
 		e.load("test.bin");
-		e.showLearnVec_kkpt(0.1);
-		e.showLearnVec_kppt(0.1);
+		v.print(0.1, 1);
+		v.print(0.1, 0);
 		e += v;
-		e.showLearnVec_kkpt(0.1);
-		e.showLearnVec_kppt(0.1);
+		e.print(0.1, 1);
+		e.print(0.1, 0);
+		LearnOpt adam;
+		for (int i = 0; i < 100; i++) {
+			adam.updateEval(e);
+			e += 2 * v;
+		}
+		//coutKPP();
+		
 	}
 #endif
-	coutKPP();
 #if 0
 	checkGenMove("position startpos");
 	checkGenMove("position startpos moves 4e4d");

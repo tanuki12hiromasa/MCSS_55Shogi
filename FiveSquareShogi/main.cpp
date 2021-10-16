@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include "commander.h"
 #include "learner.h"
+#include "learn_commander.h"
 #include "stest.h"
 #include <iostream>
 
@@ -12,7 +13,11 @@ int main(int argc, char* argv[])
 #ifndef _LEARN
     Commander::execute(enginename);
 #else
+#ifndef _LEARN_COMMANDER
     Learner::execute();
+#else
+    LearnCommander::execute();
+#endif
 #endif
     //ShogiTest::test();
 }

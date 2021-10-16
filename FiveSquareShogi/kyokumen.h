@@ -38,6 +38,12 @@ public:
 	std::vector<Bitboard> getSenteOuCheck()const;//盤全体をチェック
 	std::vector<Bitboard> getGoteOuCheck()const;
 
+	bool isOute(const Move& m = Move())const;
+	bool isSenteOute(const Move)const;
+	bool isGoteOute(const Move)const;
+	bool isSenteOute()const;
+	bool isGoteOute()const;
+
 	Bitboard pinMaskSente(const unsigned pos)const;//pos上の駒が敵駒にpinされていれば移動可能な直線範囲を返す pinされてなければAllOneが返る
 	Bitboard pinMaskGote(const unsigned pos)const;
 	Bitboard senteKiki_ingnoreKing()const;

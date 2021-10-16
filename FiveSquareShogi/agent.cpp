@@ -11,8 +11,8 @@ std::atomic_uint64_t SearchAgent::time_stamp;
 std::atomic_uint SearchAgent::old_threads_num;
 
 
-SearchAgent::SearchAgent(SearchTree& tree, const double Ts, int seed)
-	:tree(tree), engine(seed), Ts(Ts)
+SearchAgent::SearchAgent(SearchTree& tree, const double Ts, const Random::xoshiro256p& seed)
+	:tree(tree), random(seed), Ts(Ts)
 {
 	status = state::search;
 	searching = false;
@@ -21,7 +21,7 @@ SearchAgent::SearchAgent(SearchTree& tree, const double Ts, int seed)
 
 SearchAgent::SearchAgent(SearchAgent&& agent) noexcept
 	: tree(agent.tree), th(std::move(agent.th)), Ts(agent.Ts),
-	engine(std::move(agent.engine))
+	random(std::move(agent.random))
 {
 	status = agent.status.load();
 	searching = agent.searching.load();
@@ -100,7 +100,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 		for (const auto& eval : evals) {
 			Z += std::exp(-(eval.first - CE) / T_c);
 		}
-		double pip = Z * random(engine);
+		double pip = Z * random.rand01();
 		node = evals.front().second;
 		for (const auto& eval : evals) {
 			pip -= std::exp(-(eval.first - CE) / T_c);
@@ -110,8 +110,8 @@ void SearchAgent::simulate(SearchNode* const root) {
 			}
 		}
 		//局面を進める
-		k_history.push_back(std::make_pair(player.kyokumen.getHash(), player.kyokumen.getBammen()));
 		player.proceed(node->move);
+		k_history.emplace_back(player.kyokumen.getHash(), player.kyokumen.getBammen());
 		history.push_back(node);
 	}
 	//展開・評価
@@ -122,39 +122,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 		if (!dredear.Result()) {
 			return;
 		}
-		//千日手チェック
-		unsigned repnum = 0;
-		SearchNode* repnode = nullptr;
-		SearchNode* latestRepnode = nullptr;
-		{
-			auto p = tree.findRepetition(player.kyokumen);
-			repnum += p.first;
-			repnode = p.second;
-			const auto hash = player.kyokumen.getHash();
-			//先後一致している方のみを調べればよいので1つ飛ばしで調べる
-			for (int t = k_history.size() - 2; t >= 0; t -= 2) {
-				const auto& k = k_history[t];
-				if (k.first == hash && k.second == player.kyokumen.getBammen()) {
-					repnum++;
-					repnode = history[t];
-					if (latestRepnode == nullptr) {
-						latestRepnode = repnode;
-					}
-				}
-			}
-			if (latestRepnode == nullptr) {
-				latestRepnode = repnode;
-			}
-		}
-		if (repnum > 0/*千日手である*/) {
-			if (checkRepetitiveCheck(player.kyokumen, history, latestRepnode)) {
-				node->setRepetitiveCheck();
-			}
-			else {
-				node->setRepetition(player.kyokumen.teban());
-			}
-			goto backup;
-		}
+
 		{//子ノード生成
 			const auto moves = MoveGenerator::genMove(node->move, player.kyokumen);
 			if (moves.empty()) {
@@ -162,15 +130,94 @@ void SearchAgent::simulate(SearchNode* const root) {
 				goto backup;
 			}
 			else if (history.size() - 1 + tree.getMoveNum() >= drawmovenum) {
-				node->setRepetition(player.kyokumen.teban());
+				node->setDraw(player.kyokumen.teban());
 				goto backup;
 			}
 			node->addChildren(moves);
 		}
+
+#ifdef EXPAND_GRANDCHILDREN
+		uint64_t evalcount = 0ull;
+		int dbg_X = 0;
+		for (auto& child : node->children) {
+			dbg_X++;
+			const auto cache = player.proceedC(child.move);
+			history.push_back(&child);
+			if (!checkRepetition(&child, player.kyokumen, history, k_history) || !child.isRepetition()) {
+				{
+					const auto moves = MoveGenerator::genMove(child.move, player.kyokumen);
+					if (moves.empty()) {
+						child.setMate();
+						history.pop_back();
+						player.recede(child.move, cache);
+						continue;
+					}
+					else if (history.size() - 1 + tree.getMoveNum() >= drawmovenum) {
+						node->setDraw(player.kyokumen.teban());
+						history.pop_back();
+						player.recede(child.move, cache);
+						continue;
+					}
+					child.addChildren(moves);
+				}
+				k_history.emplace_back(player.kyokumen.getHash(), player.kyokumen.getBammen());
+				for (auto& grandchild : child.children) {
+					const auto gcache = player.proceedC(grandchild.move);
+					history.push_back(&grandchild);
+					if (!checkRepetition(&grandchild, player.kyokumen, history, k_history)) {
+						evalcount += qsimulate(&grandchild, player, history.size());
+					}
+					history.pop_back();
+					player.recede(grandchild.move, gcache);
+				}
+				{
+					//子ノードの評価値をバックアップで計算
+					child.children.sort();
+					double emin = child.children.begin()->eval;
+					double Z_e = 0;
+					for (const auto& grandchild : child.children) {
+						Z_e += std::exp(-(grandchild.eval - emin) / T_e);
+					}
+					double E = 0;
+					for (const auto& grandchild : child.children) {
+						E -= grandchild.eval * std::exp(-(grandchild.eval - emin) / T_e) / Z_e;
+					}
+					child.setEvaluation(E);
+					child.setOriginEval(E);
+					child.setMass(1);
+					child.setExpanded();
+				}
+				k_history.pop_back();
+			}
+			history.pop_back();
+			player.recede(child.move, cache);
+		}
+		assert(history.size() == k_history.size() + 1);
+		tree.addEvaluationCount(evalcount);
+		//sortは静止探索後の方が評価値順の並びが維持されやすい　親スタートの静止探索ならその前後共にsortしてもいいかもしれない
+		node->children.sort();
+		//sortしたので一番上が最小値になっているはず
+		double emin = node->children.begin()->eval;
+		double Z_e = 0;
+		for (const auto& child : node->children) {
+			Z_e += std::exp(-(child.eval - emin) / T_e);
+		}
+		double E = 0;
+		for (const auto& child : node->children) {
+			E -= child.eval * std::exp(-(child.eval - emin) / T_e) / Z_e;
+		}
+		node->setEvaluation(E);
+		node->setMass(2);
+
+#else
 		uint64_t evalcount = 0ull;
 		for (auto& child : node->children) {
 			const auto cache = player.proceedC(child.move);
-			evalcount += qsimulate(&child, player, history.size());
+			history.push_back(&child);
+			if (!checkRepetition(&child, player.kyokumen, history, k_history)) {
+				evalcount += qsimulate(&child, player, history.size());
+			}
+			history.pop_back();
 			player.recede(child.move, cache);
 		}
 		tree.addEvaluationCount(evalcount);
@@ -189,6 +236,7 @@ void SearchAgent::simulate(SearchNode* const root) {
 		node->setEvaluation(E);
 		node->setMass(1);
 		//node->status = SearchNode::State::E;
+#endif
 	}//展開評価ここまで
 
 	//バックアップ
@@ -260,12 +308,6 @@ double alphabeta(Move& pmove, SearchPlayer& player, int depth, double alpha, dou
 
 size_t SearchAgent::qsimulate(SearchNode* const root, SearchPlayer& player, const int hislength) {
 	const int depth = SearchNode::getQSdepth();
-	if (depth <= 0) {
-		const double eval = Evaluator::evaluate(player);
-		root->setEvaluation(eval);
-		root->setOriginEval(eval);
-		return 1ull;
-	}
 	auto moves = MoveGenerator::genCapMove(root->move, player.kyokumen);
 	if (moves.empty()) {
 		if (root->move.isOute()) {
@@ -283,9 +325,15 @@ size_t SearchAgent::qsimulate(SearchNode* const root, SearchPlayer& player, cons
 		root->setRepetition(player.kyokumen.teban());
 		return 1ull;
 	}
+	else if (depth <= 0) {
+		const double eval = Evaluator::evaluate(player);
+		root->setEvaluation(eval);
+		root->setOriginEval(eval);
+		return 1ull;
+	}
 	double max = Evaluator::evaluate(player);
 	uint64_t evaluationcount = 1ull;
-	for (auto m : moves) {
+	for (auto& m : moves) {
 		const FeatureCache cache = player.feature.getCache();
 		const koma::Koma captured = player.proceed(m);
 		const double eval = -alphabeta(m, player, depth - 1, std::numeric_limits<double>::lowest(), -max, evaluationcount);
@@ -299,19 +347,63 @@ size_t SearchAgent::qsimulate(SearchNode* const root, SearchPlayer& player, cons
 	return evaluationcount;
 }
 
+bool SearchAgent::checkRepetition(SearchNode* const node, const Kyokumen& kyokumen, const std::vector<SearchNode*>& history, const std::vector<std::pair<std::uint64_t, Bammen>>& k_history) {
+	unsigned repnum = 0;
+	SearchNode* repnode = nullptr;
+	SearchNode* latestRepnode = nullptr;
+
+	
+	auto p = tree.findRepetition(kyokumen);
+	repnum += p.first;
+	repnode = p.second;
+	const auto hash = kyokumen.getHash();
+	//先後一致している方のみを調べればよいので1つ飛ばしで調べる
+	for (int t = k_history.size() - 2; t >= 0; t -= 2) {
+		const auto& k = k_history[t];
+		if (k.first == hash && k.second == kyokumen.getBammen()) {
+			repnum++;
+			repnode = history[t];
+			if (latestRepnode == nullptr) {
+				latestRepnode = repnode;
+			}
+		}
+	}
+	if (latestRepnode == nullptr) {
+		latestRepnode = repnode;
+	}
+	
+	if (repnum > 0/*千日手である*/) {
+		if (repnum >= 3) {
+			//同一局面が4回繰り返されているなら、ゲーム終了
+			if (checkRepetitiveCheck(kyokumen, history, latestRepnode)) {
+				node->setRepetitiveCheckmate();
+			}
+			else {
+				node->setRepetitiveEnd(kyokumen.teban());
+			}
+		}
+		else {
+			//繰り返し回数が少ない場合は、評価値を千日手にする
+			if (checkRepetitiveCheck(kyokumen, history, latestRepnode)) {
+				node->setRepetitiveCheck();
+			}
+			else {
+				node->setRepetition(kyokumen.teban());
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 bool SearchAgent::checkRepetitiveCheck(const Kyokumen& kyokumen, const std::vector<SearchNode*>& searchhis, const SearchNode* const repnode)const {
 	//対象ノードは未展開なので局面から王手かどうか判断する この関数は4回目の繰り返しの終端ノードで呼ばれているのでkusemonoを何回も生成するような無駄は発生していない
-	if (kyokumen.teban()) {
-		if (kyokumen.getSenteOuCheck().empty()) {
+	if (!searchhis.back()->move.isOute()) {
+		if (!kyokumen.isOute(searchhis.back()->move)) {
 			return false;
 		}
+		searchhis.back()->move.setOute(true);
 	}
-	else {
-		if (kyokumen.getGoteOuCheck().empty()) {
-			return false;
-		}
-	}
-	searchhis.back()->move.setOute(true);
 	//過去ノードはmoveのouteフラグから王手だったか判定する
 	int t;
 	for (t = searchhis.size() - 3; t >= 0; t -= 2) {//historyの後端は末端ノードなのでその二つ前から調べていく
@@ -354,10 +446,12 @@ AgentPool::AgentPool(SearchTree& tree) :tree(tree) {
 
 void AgentPool::setup() {
 	assert(!SearchAgent::search_enable);
+	Random::xoshiro256p random;
 	if (agents.size() < agent_num) {
 		for (std::size_t t = agents.size(); t < agent_num; t++) {
 			agents.push_back(std::unique_ptr<SearchAgent>(
-				new SearchAgent(tree, SearchTemperature::getTs((double)t / (agent_num - 1)), t)));
+				new SearchAgent(tree, SearchTemperature::getTs((double)t / (agent_num - 1)), random)));
+			random.jump();
 		}
 	}
 	else if (agents.size() > agent_num) {

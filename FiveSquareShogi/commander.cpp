@@ -74,6 +74,9 @@ void Commander::execute(const std::string& enginename) {
 		else if (tokens[0] == "showBanFigure") {
 			std::cout << commander.tree.getRootPlayer().kyokumen.toBanFigure() << std::endl;
 		}
+		else if (tokens[0] == "showKifuFigure") {
+			commander.showKifuFigure();
+		}
 		else if (tokens[0] == "quit") {
 			return;
 		}
@@ -102,6 +105,7 @@ Commander::~Commander() {
 void Commander::coutOption() {
 	using namespace std;
 	cout << "option name eval_folderpath type string default ./data/kppt" << endl;
+	cout << "option name use_dynamicPieceScore type check default false" << endl;//駒価値をパラメータとして変動させるかどうか
 	cout << "option name leave_branchNode type check default false" << endl;
 	cout << "option name continuous_tree type check default true" << endl;
 	cout << "option name NumOfAgent type spin default 12 min 1 max 128" << endl;
@@ -120,6 +124,7 @@ void Commander::coutOption() {
 	cout << "option name DrawMoveNum type spin default 320 min 0 max 1000000" << endl;
 	cout << "option name PV_functionCode type spin default 0 min 0 max 3" << endl;
 	cout << "option name PV_const type string default 0" << endl;
+	cout << "option name setFirstRepNodeToMateScore type check default true" << endl;
 	cout << "option name resign_matemoves type spin default 10 min 0 max 100" << endl;//投了する詰み手数
 	cout << "option name quick_bm_time_lower type spin default 4000 min 1000 max 600000" << endl;//標準時間の下限
 	cout << "option name standard_time_upper type spin default 10000 min 1000 max 6000000" << endl;//標準時間の上限
@@ -139,9 +144,15 @@ void Commander::setOption(const std::vector<std::string>& token) {
 			continuousTree = (token[4] == "true");
 		}
 		else if (token[2] == "eval_folderpath") {
-			//aperyのパラメータファイルの位置を指定する 空白文字がパスにあると駄目なのを何とかしたい?
+			//aperyのパラメータファイルの位置を指定する
+			const auto str = usi::combine(token.begin() + 4, token.end(), ' ');
 			Evaluator::setpath_input(token[4]);
 		}
+#if defined(USE_KPPT) || defined(USE_KKPPT)
+		else if (token[2] == "use_dynamicPieceScore") {
+			Evaluator::use_dynamicPieceScore(token[4] == "true");
+		}
+#endif
 		else if (token[2] == "NumOfAgent") {
 			agents.setAgentNum(std::stoi(token[4]));
 		}
@@ -186,6 +197,9 @@ void Commander::setOption(const std::vector<std::string>& token) {
 		}
 		else if (token[2] == "PV_const") {
 			SearchNode::setPVConst(std::stod(token[4]));
+		}
+		else if (token[2] == "setFirstRepNodeToMateScore") {
+			SearchNode::setFirstRepetitonToMateScore(token[4] == "true");
 		}
 		else if (token[2] == "resign_matemoves") {
 			resign_border = std::stoi(token[4]);
@@ -387,4 +401,16 @@ void Commander::position(const std::vector<std::string>& tokens) {
 	agents.pauseSearch();
 	tree.set(tokens);
 	agents.noticeProceed();
+}
+
+void Commander::showKifuFigure() {
+	int t = 0;
+	Kyokumen kyokumen(tree.startKyokumen);
+	std::cout << t << "\n";
+	std::cout << kyokumen.toBanFigure() << "\n";
+	for (t = 1; t < tree.history.size(); t++) {
+		std::cout << t << ": " << tree.history[t]->move.toUSI() << "\n";
+		kyokumen.proceed(tree.history[t]->move);
+		std::cout << kyokumen.toBanFigure() << "\n";
+	}
 }

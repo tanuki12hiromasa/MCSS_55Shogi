@@ -41,6 +41,8 @@ private:
 	static double mateScore;
 	static double mateScoreBound;
 	static double mateOneScore;
+	static double midRepScore;
+	static double drawScore;
 	static int QS_depth;
 	static int Es_FunctionCode;
 	static double Es_c;
@@ -54,6 +56,7 @@ public:
 	static void setMateOneScore(const double score) { mateOneScore = score; }
 	static double getMateScoreBound() { return mateScoreBound; }
 	static double getMateScore() { return mateScore; }
+	static void setFirstRepetitonToMateScore(bool b);
 	static void setQSearchDepth(const double mmqs) { QS_depth = mmqs; }
 	static double getQSdepth() { return QS_depth; }
 	static void setEsFuncCode(const int code) { Es_FunctionCode = code; }
@@ -72,11 +75,15 @@ public:
 	void setEvaluation(const double evaluation) { eval = evaluation; }
 	void setMass(const double m) { mass = m; }
 
+	void setExpanded();
 	void setMateVariation(const double childmin);
 	void setMate();
 	void setDeclare();
+	void setDraw(const bool teban);
 	void setRepetition(const bool teban);
+	void setRepetitiveEnd(const bool teban);
 	void setRepetitiveCheck();
+	void setRepetitiveCheckmate();
 	void setOriginEval(const double evaluation) { origin_eval = evaluation; }
 
 	std::size_t getOffspringsCount()const;
@@ -86,6 +93,7 @@ public:
 	bool isTerminal()const { return status == State::T || status == State::R; }
 	bool isRepetition()const { return status == State::R; }
 	bool isSearchable()const { const auto s = status.load(); return s == State::N || s == State::E; }
+	bool isMate()const { return std::abs(eval) >= mateScoreBound; }
 	double getEs()const { return getEs(Es_FunctionCode); }
 	double getEs(int funccode)const;
 	SearchNode* getBestChild()const { return getBestChild(PV_FuncCode); }
