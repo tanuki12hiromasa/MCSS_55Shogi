@@ -1,4 +1,4 @@
-﻿#include "learn_commander.h"
+#include "learn_commander.h"
 #include "usi.h"
 #include <iostream>
 #include <fstream>
@@ -386,12 +386,8 @@ void LearnCommander::learn_from_tree(const SearchPlayer& kyokumen, const SearchN
 
 	LearnVec dv;
 	double eval = 0;
-#ifdef LEARN_PG
-	LearnVec pg_dQt, pg_dPQ;
-	long long pg_Qtcount = 0;
-#endif
 #ifdef LEARN_BOOTSTRAP_RANDOM_NODE
-#define Learn_BTS_random(vec, H, V, player) {if(btsrand_exp < random.rand01()) vec.addGrad(LearnUtil::EvalToProb(H) - LearnUtil::EvalToProb(V), player); }
+#define Learn_BTS_random(vec, H, V, player) {if(btsrand_exp >= random.rand01()){ vec.addGrad(LearnUtil::EvalToProb(H) - LearnUtil::EvalToProb(V), player);} }
 #else
 #define	Learn_BTS_random(dw, c, player) ((void)0)
 #endif
@@ -423,6 +419,8 @@ void LearnCommander::learn_from_tree(const SearchPlayer& kyokumen, const SearchN
 	}
 #endif //LEARN_V
 #ifdef LEARN_PG
+	const double T_pg = T_search;
+	LearnVec pg_e_vec;
 	if (!root->children.empty() && !root->isLeaf()) {//PG-Leaf
 		double Z, e_min;
 		Z = LearnUtil::getChildrenZ(root, T_pg, e_min);
@@ -465,6 +463,10 @@ void LearnCommander::learn_from_tree(const SearchPlayer& kyokumen, const SearchN
 #endif //PVLEAF_GRAD
 
 #ifdef SAMPLING_GRAD
+#ifdef LEARN_PG
+	LearnVec pg_dQt, pg_dPQ;
+	long long pg_Qtcount = 0;
+#endif
 	eval = root->eval;
 	if(!root->isLeaf()){
 		const double T = SearchTemperature::Te;
@@ -553,10 +555,15 @@ void LearnCommander::learn_from_tree(const SearchPlayer& kyokumen, const SearchN
 	}
 #endif
 #ifdef LEARN_PG
+#ifdef SAMPLING_GRAD
 	pg_dQt *= 1.0 / pg_Qtcount;
 	pg_dPQ *= -1.0 / samplingnum;
 	pg_dQt += pg_dPQ;
 	dw_pg += pg_dQt;
+#endif
+#ifdef PVLEAF_GRAD
+	dw_pg += (1.0 / T_pg) * pg_e_vec;
+#endif
 #endif
 #ifdef LEARN_BOOTSTRAP_ROOT
 	{
@@ -569,6 +576,7 @@ void LearnCommander::learn_from_tree(const SearchPlayer& kyokumen, const SearchN
 
 void LearnCommander::learn_at_gameover(MyGameResult result) {
 	LearnVec dw;
+	const double length_revision = kifulength_mean / (tree.getHistory().size() + 1.0); //対局の長さで学習の重みが変わらないように補正する係数
 	const std::string vec_tempfilepath = Evaluator::getpath_output() + "/.learngrad";
 	if(std::filesystem::exists(vec_tempfilepath)) dw.load(vec_tempfilepath);
 #ifdef LEARN_TD_LAMBDA
@@ -576,28 +584,28 @@ void LearnCommander::learn_at_gameover(MyGameResult result) {
 		const double r = LearnUtil::ResultToReward(result, reward_win, reward_draw, reward_lose);
 		const double delta = r + td_gamma * td_Vt - td_Vt;
 		dw_td += delta * td_e_vec;
-		dw += td_rate * dw_td;
+		dw += length_revision * td_rate * dw_td;
 	}
 #endif
 #ifdef LEARN_REGRESSION
 	if (result == MyGameResult::PlayerWin) {
-		dw += reg_rate * dw_reg_win;
+		dw += length_revision * reg_rate * dw_reg_win;
 	}
 	else if (result == MyGameResult::PlayerLose) {
-		dw += reg_rate * dw_reg_lose;
+		dw += length_revision * reg_rate * dw_reg_lose;
 	}
 #endif
 #ifdef LEARN_PG
 	{
 		const double r = LearnUtil::ResultToReward(result, reward_win, reward_draw, reward_lose);
-		dw += pg_rate * r * dw_pg;
+		dw += length_revision * pg_rate * r * dw_pg;
 	}
 #endif
 #ifdef LEARN_BOOTSTRAP_ROOT
-	dw += -btsroot_rate * dw_btsroot;
+	dw += length_revision * -btsroot_rate * dw_btsroot;
 #endif
 #ifdef LEARN_BOOTSTRAP_RANDOM_NODE
-	dw += -btsrand_rate * dw_btsrand;
+	dw += length_revision * -btsrand_rate * dw_btsrand;
 #endif
 	dw.updateEval();//評価値に反映
 	Evaluator::save();//保存
