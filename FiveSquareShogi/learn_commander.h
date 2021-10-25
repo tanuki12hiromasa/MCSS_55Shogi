@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "commander.h"
 #include "learn_util.h"
 
@@ -13,7 +13,7 @@
 //#define LEARN_TD_LAMBDA_PROB
 #define LEARN_PG
 #define LEARN_REGRESSION
-//#define LEARN_BOOTSTRAP_ROOT
+#define LEARN_BOOTSTRAP_ROOT
 #define LEARN_BOOTSTRAP_RANDOM_NODE
 
 #if defined(SAMPLING_GRAD_PROB) || defined(SAMPLING_GRAD_CP)
@@ -54,6 +54,7 @@ protected:
 
 	int batch = 1;
 	double T_search = 120;
+	double kifulength_mean = 30;
 
 	bool learned_gameover = false;
 
