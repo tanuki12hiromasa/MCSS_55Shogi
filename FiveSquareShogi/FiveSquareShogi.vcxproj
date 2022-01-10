@@ -436,6 +436,12 @@
     <ClCompile Include="koma.cpp" />
     <ClCompile Include="kppt_feature.cpp" />
     <ClCompile Include="kppt_learn.cpp" />
+    <ClCompile Include="kpp_evaluate.cpp" />
+    <ClCompile Include="kpp_feature.cpp" />
+    <ClCompile Include="kpp_kkpt_evaluate .cpp" />
+    <ClCompile Include="kpp_kkpt_feature.cpp" />
+    <ClCompile Include="kpp_kkpt_learn.cpp" />
+    <ClCompile Include="kpp_learn.cpp" />
     <ClCompile Include="kyokumen.cpp" />
     <ClCompile Include="leaf_guard.cpp" />
     <ClCompile Include="learner.cpp" />
@@ -472,6 +478,14 @@
     <ClInclude Include="kppt_feature.h" />
     <ClInclude Include="kppt_learn.h" />
     <ClInclude Include="kppt_param.h" />
+    <ClInclude Include="kpp_evaluate.h" />
+    <ClInclude Include="kpp_feature.h" />
+    <ClInclude Include="kpp_kkpt_evaluate.h" />
+    <ClInclude Include="kpp_kkpt_feature.h" />
+    <ClInclude Include="kpp_kkpt_learn.h" />
+    <ClInclude Include="kpp_kkpt_param.h" />
+    <ClInclude Include="kpp_learn.h" />
+    <ClInclude Include="kpp_param.h" />
     <ClInclude Include="kyokumen.h" />
     <ClInclude Include="leaf_guard.h" />
     <ClInclude Include="learner.h" />

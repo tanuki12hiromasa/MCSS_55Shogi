@@ -40,6 +40,12 @@
     <Filter Include="kkppt">
       <UniqueIdentifier>{d13a40e6-623f-41e8-9845-156e4386cda6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="kpp">
+      <UniqueIdentifier>{d595d3bd-7b08-4a6e-9b15-35844d715f86}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="kpp_kkpt">
+      <UniqueIdentifier>{cd1b35e4-eda6-423e-a18d-0465cffa392e}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -131,6 +137,24 @@
     </ClCompile>
     <ClCompile Include="move_gen.cpp">
       <Filter>ソース ファイル\search</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_learn.cpp">
+      <Filter>kpp</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_feature.cpp">
+      <Filter>kpp</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_evaluate.cpp">
+      <Filter>kpp</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_kkpt_learn.cpp">
+      <Filter>kpp_kkpt</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_kkpt_feature.cpp">
+      <Filter>kpp_kkpt</Filter>
+    </ClCompile>
+    <ClCompile Include="kpp_kkpt_evaluate .cpp">
+      <Filter>kpp_kkpt</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -238,6 +262,30 @@
     </ClInclude>
     <ClInclude Include="learn_commander.h">
       <Filter>ヘッダー ファイル\learn</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_param.h">
+      <Filter>kpp</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_learn.h">
+      <Filter>kpp</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_feature.h">
+      <Filter>kpp</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_evaluate.h">
+      <Filter>kpp</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_kkpt_param.h">
+      <Filter>kpp_kkpt</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_kkpt_learn.h">
+      <Filter>kpp_kkpt</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_kkpt_feature.h">
+      <Filter>kpp_kkpt</Filter>
+    </ClInclude>
+    <ClInclude Include="kpp_kkpt_evaluate.h">
+      <Filter>kpp_kkpt</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

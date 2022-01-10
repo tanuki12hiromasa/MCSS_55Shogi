@@ -1,32 +1,32 @@
 ﻿#include "stdafx.h"
-#include "kppt_evaluate.h"
+#include "kpp_evaluate.h"
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 
-namespace kppt {
+namespace kpp {
 
-	std::string kppt_evaluator::ifolderpath = "data/kppt";
-	std::string kppt_evaluator::ofolderpath = "data/kppt";
+	std::string kpp_evaluator::ifolderpath = "data/kpp";
+	std::string kpp_evaluator::ofolderpath = "data/kpp";
 
-	void kppt_evaluator::init() {
-		kppt_feat::init(ifolderpath);
+	void kpp_evaluator::init() {
+		kpp_feat::init(ifolderpath);
 	}
 
-	void kppt_evaluator::save() {
+	void kpp_evaluator::save() {
 		std::filesystem::create_directories(ofolderpath);
-		kppt_feat::save(ofolderpath);
+		kpp_feat::save(ofolderpath);
 	}
 	
-	void kppt_evaluator::save(const std::string& path) {
-		kppt_feat::save(path);
+	void kpp_evaluator::save(const std::string& path) {
+		kpp_feat::save(path);
 	}
 
-	double kppt_evaluator::evaluate(const SearchPlayer& player) {
+	double kpp_evaluator::evaluate(const SearchPlayer& player) {
 		return (double)player.feature.sum.sum(player.kyokumen.teban()) / FVScale;
 	}
 
-	double kppt_evaluator::evaluate(const SearchPlayer& player, bool jiteban) {
+	double kpp_evaluator::evaluate(const SearchPlayer& player, bool jiteban) {
 		if (jiteban) {
 			return (double)player.feature.sum.sum(player.kyokumen.teban()) / FVScale;
 		}
@@ -35,7 +35,7 @@ namespace kppt {
 		}
 	}
 
-	void kppt_evaluator::genFirstEvalFile(const std::string& folderpath) {
+	void kpp_evaluator::genFirstEvalFile(const std::string& folderpath) {
 		std::filesystem::create_directories(folderpath);
 		auto* KPP = new KPPEvalElementType1[SquareNum];
 		auto* KKP = new KKPEvalElementType1[SquareNum];
@@ -79,27 +79,27 @@ namespace kppt {
 		}
 	}
 
-	void kppt_evaluator::print(int iskpp) {
+	void kpp_evaluator::print(int iskpp) {
 		using namespace std;
 		if (iskpp) {
 			cout << "show kpp" << endl;
-			for (int i = 0; i < kppt::SquareNum; i++) {
-				for (int j = 0; j < kppt::fe_end; j++) {
+			for (int i = 0; i < kpp::SquareNum; i++) {
+				for (int j = 0; j < kpp::fe_end; j++) {
 					for (int k = 0; k < j; k++) {
 						if (j == k)continue;
-						if(KPP[i][j][k][0]!=0|| KPP[i][j][k][1]!=0)
-							cout << i << "," << j << "," << k << ": " << KPP[i][j][k][0] << " " << KPP[i][j][k][1] << "\n";
+						if(KPP[i][j][k]!=0)
+							cout << i << "," << j << "," << k << ": " << KPP[i][j][k] << "\n";
 					}
 				}
 			}
 		}
 		else {
 			cout << "show kkp" << endl;
-			for (int i = 0; i < kppt::SquareNum; i++) {
-				for (int j = 0; j < kppt::SquareNum; j++) {
-					for (int k = 0; k < kppt::fe_end; k++) {
-						if (KKP[i][j][k][0] != 0 || KKP[i][j][k][1] != 0)
-							cout << i << "," << j << "," << k << ": " << KKP[i][j][k][0] << " " << KKP[i][j][k][1] << "\n";
+			for (int i = 0; i < kpp::SquareNum; i++) {
+				for (int j = 0; j < kpp::SquareNum; j++) {
+					for (int k = 0; k < kpp::fe_end; k++) {
+						if (KKP[i][j][k] != 0)
+							cout << i << "," << j << "," << k << ": " << KKP[i][j][k] << "\n";
 					}
 				}
 			}

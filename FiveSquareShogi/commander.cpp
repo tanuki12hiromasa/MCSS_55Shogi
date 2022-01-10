@@ -16,7 +16,7 @@ void Commander::execute(const std::string& enginename) {
 			std::cout << "command ready" << std::endl;
 		}
 		else if (tokens[0] == "usi") {
-			std::cout << "id name " << enginename << std::endl;
+			std::cout << "id name " << enginename << "_" << Evaluator::name() << std::endl;
 			std::cout << "id author Hiromasa_Iwamoto" << std::endl;
 			coutOption();
 			std::cout << "usiok" << std::endl;
@@ -146,7 +146,7 @@ void Commander::setOption(const std::vector<std::string>& token) {
 		else if (token[2] == "eval_folderpath") {
 			//aperyのパラメータファイルの位置を指定する
 			const auto str = usi::combine(token.begin() + 4, token.end(), ' ');
-			Evaluator::setpath_input(token[4]);
+			Evaluator::setpath_input(str);
 		}
 #if defined(USE_KPPT) || defined(USE_KKPPT)
 		else if (token[2] == "use_dynamicPieceScore") {

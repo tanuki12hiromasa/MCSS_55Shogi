@@ -8,7 +8,9 @@
 #include <thread>
 #include <functional>
 
+#ifdef _LEARN
 //#define EXPAND_GRANDCHILDREN //探索での展開時に孫ノードまで展開するオプション
+#endif
 
 class SearchAgent {
 public:
