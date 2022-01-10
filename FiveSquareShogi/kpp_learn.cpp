@@ -1,26 +1,20 @@
-﻿#include "kppt_learn.h"
+﻿#include "kpp_learn.h"
 #include <iostream>
 #include <fstream>
 #include <filesystem>
 
-namespace kppt {
-	void kppt_paramVector::EvalClamp(std::int16_t absmax) {
+namespace kpp {
+	void kpp_paramVector::EvalClamp(std::int16_t absmax) {
 		absmax = std::abs(absmax);
 		for (unsigned k = 0; k < SquareNum; k++) {
 			for (unsigned p1 = 0; p1 < fe_end; p1++) {
 				for (unsigned p2 = 0; p2 < fe_end; p2++) {
-					auto& vec = kppt::KPP[k][p1][p2];
-					if (vec[0] > absmax) {
-						vec[0] = absmax;
+					auto& val = kpp::KPP[k][p1][p2];
+					if (val > absmax) {
+						val = absmax;
 					}
-					else if (vec[0] < -absmax) {
-						vec[0] = -absmax;
-					}
-					if (vec[1] > absmax) {
-						vec[1] = absmax;
-					}
-					else if (vec[1] < -absmax) {
-						vec[1] = -absmax;
+					else if (val < -absmax) {
+						val = -absmax;
 					}
 				}
 			}
@@ -28,31 +22,25 @@ namespace kppt {
 		for (unsigned sk = 0; sk < SquareNum; sk++) {
 			for (unsigned gk = 0; gk < SquareNum; gk++) {
 				for (unsigned p = 0; p < fe_end; p++) {
-					auto& vec = kppt::KKP[sk][gk][p];
-					if (vec[0] > absmax) {
-						vec[0] = absmax;
+					auto& val = kpp::KPP[sk][gk][p];
+					if (val > absmax) {
+						val = absmax;
 					}
-					else if (vec[0] < -absmax) {
-						vec[0] = -absmax;
-					}
-					if (vec[1] > absmax) {
-						vec[1] = absmax;
-					}
-					else if (vec[1] < -absmax) {
-						vec[1] = -absmax;
+					else if (val < -absmax) {
+						val = -absmax;
 					}
 				}
 			}
 		}
 	}
 
-	kppt_paramVector::kppt_paramVector() {
-		KPP = new EvalVectorFloat[lkpptnum];
-		KKP = new EvalVectorFloat[lkkptnum];
+	kpp_paramVector::kpp_paramVector() {
+		KPP = new EvalVectorFloat[lkppnum];
+		KKP = new EvalVectorFloat[lkkpnum];
 		reset();
 	}
 
-	kppt_paramVector::kppt_paramVector(kppt_paramVector&& rhs) noexcept :
+	kpp_paramVector::kpp_paramVector(kpp_paramVector&& rhs) noexcept :
 		PieceScoreArr(std::move(rhs.PieceScoreArr))
 	{
 		KPP = rhs.KPP;
@@ -61,7 +49,7 @@ namespace kppt {
 		rhs.KKP = nullptr;
 	}
 
-	kppt_paramVector& kppt_paramVector::operator=(kppt_paramVector&& rhs)noexcept {
+	kpp_paramVector& kpp_paramVector::operator=(kpp_paramVector&& rhs)noexcept {
 		delete[] KPP;
 		delete[] KKP;
 		KPP = rhs.KPP;
@@ -71,18 +59,18 @@ namespace kppt {
 		return *this;
 	}
 
-	kppt_paramVector::~kppt_paramVector() {
+	kpp_paramVector::~kpp_paramVector() {
 		delete[] KPP;
 		delete[] KKP;
 	}
 
-	void kppt_paramVector::reset() {
+	void kpp_paramVector::reset() {
 		EvalVectorFloat* const kpp = KPP;
-		for (int i = 0; i < lkpptnum; i++) {
+		for (int i = 0; i < lkppnum; i++) {
 			kpp[i] = 0;
 		}
 		EvalVectorFloat* const kkp = KKP;
-		for (int i = 0; i < lkkptnum; i++) {
+		for (int i = 0; i < lkkpnum; i++) {
 			kkp[i] = 0;
 		}
 		for (auto& p : PieceScoreArr) {
@@ -90,19 +78,15 @@ namespace kppt {
 		}
 	}
 
-	inline void kpp_addGrad(EvalVectorFloat* const kpp, const int kpos, const int k, const int l,const float bg,const float tg) {
-		kpp[kpptToLkpptnum(kpos, k, l, 0)] += bg;
-		kpp[kpptToLkpptnum(kpos, k, l, 1)] += tg;
-		//kpp[kpptToLkpptnum(koma::mirrorX(kpos), mirror((EvalIndex)k), mirror((EvalIndex)l), 0)] += bg;
-		//kpp[kpptToLkpptnum(koma::mirrorX(kpos), mirror((EvalIndex)k), mirror((EvalIndex)l), 1)] += tg;
+	inline void kpp_addGrad(EvalVectorFloat* const kpp, const int kpos, const int k, const int l,const float bg) {
+		kpp[kppToLkppnum(kpos, k, l)] += bg;
+		kpp[kppToLkppnum(koma::mirrorX(kpos), mirror((EvalIndex)k), mirror((EvalIndex)l))] += bg;
 	}
-	inline void kkp_addGrad(EvalVectorFloat* const kkp, const int skpos, const int gkpos, const int k, const float bg, const float tg) {
-		kkp[kkptToLkkptnum(skpos, gkpos, k, 0)] += bg;
-		kkp[kkptToLkkptnum(skpos, gkpos, k, 1)] += tg;
-		//kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 0)] += bg;
-		//kkp[kkptToLkkptnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k), 1)] += tg;
+	inline void kkp_addGrad(EvalVectorFloat* const kkp, const int skpos, const int gkpos, const int k, const float bg) {
+		kkp[kkpToLkkpnum(skpos, gkpos, k)] += bg;
+		kkp[kkpToLkkpnum(koma::mirrorX(skpos), koma::mirrorX(gkpos), mirror((EvalIndex)k))] += bg;
 	}
-	void kppt::kppt_paramVector::piece_addGrad(const float scalar, const Kyokumen& kyokumen) {
+	void kpp::kpp_paramVector::piece_addGrad(const float scalar, const Kyokumen& kyokumen) {
 		{ //歩
 			const int fu = (int)kyokumen.getEachBB(koma::Koma::s_Fu).popcount() - (int)kyokumen.getEachBB(koma::Koma::g_Fu).popcount();
 			PieceScoreArr[0] += scalar * fu;
@@ -141,7 +125,7 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::addGrad(const float scalar,const SearchPlayer& player) {
+	void kpp_paramVector::addGrad(const float scalar,const SearchPlayer& player) {
 		if (std::abs(scalar) < 0.00000001f) return;
 		EvalVectorFloat* const kpp = KPP;
 		EvalVectorFloat* const kkp = KKP;
@@ -150,7 +134,6 @@ namespace kppt {
 		const unsigned invgkpos = inverse(gkpos);
 		const unsigned invskpos = inverse(skpos);
 		const float bammenscalar = (player.kyokumen.teban()) ? scalar : -scalar;
-		const float tebanscalar = scalar / 8.0;
 		for (unsigned i = 0; i < EvalList::EvalListSize; ++i) {
 			const int k0 = player.feature.idlist.list0[i];
 			const int k1 = player.feature.idlist.list1[i];
@@ -158,18 +141,18 @@ namespace kppt {
 				const int l0 = player.feature.idlist.list0[j];
 				const int l1 = player.feature.idlist.list1[j];
 
-				kpp_addGrad(kpp, skpos, k0, l0, bammenscalar, tebanscalar);
-				kpp_addGrad(kpp, invgkpos, k1, l1, -bammenscalar, tebanscalar);
+				kpp_addGrad(kpp, skpos, k0, l0, bammenscalar);
+				kpp_addGrad(kpp, invgkpos, k1, l1, -bammenscalar);
 			}
-			kkp_addGrad(kkp, skpos, gkpos, k0, bammenscalar, tebanscalar);
-			kkp_addGrad(kkp, invgkpos, invskpos, k1, -bammenscalar, tebanscalar);
+			kkp_addGrad(kkp, skpos, gkpos, k0, bammenscalar);
+			kkp_addGrad(kkp, invgkpos, invskpos, k1, -bammenscalar);
 		}
 		piece_addGrad(scalar, player.kyokumen);
 	}
 
-	void kppt_paramVector::clamp(float absmax) {
+	void kpp_paramVector::clamp(float absmax) {
 		absmax = std::abs(absmax);
-		for (size_t i = 0; i < lkpptnum; i++) {
+		for (size_t i = 0; i < lkppnum; i++) {
 			if (KPP[i] > absmax) {
 				KPP[i] = absmax;
 			}
@@ -177,7 +160,7 @@ namespace kppt {
 				KPP[i] = -absmax;
 			}
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			if (KKP[i] > absmax) {
 				KKP[i] = absmax;
 			}
@@ -196,7 +179,7 @@ namespace kppt {
 	}
 
 	//ベクトル中の最大値を1にするように補正する
-	void kppt_paramVector::normalize() {
+	void kpp_paramVector::normalize() {
 		const auto max = abs_max_value();
 		//std::cout << "absmax: " << max << std::endl;
 		if (max != 0 && max < 1) {
@@ -204,89 +187,83 @@ namespace kppt {
 		}
 	}
 
-	EvalVectorFloat kppt_paramVector::abs_max_value() const {
+	EvalVectorFloat kpp_paramVector::abs_max_value() const {
 		EvalVectorFloat max = 0;
-		for (size_t i = 0; i < lkpptnum; i++) {
+		for (size_t i = 0; i < lkppnum; i++) {
 			max = std::max(max, std::abs(KPP[i]));
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			max = std::max(max, std::abs(KKP[i]));
 		}
 		return max;
 	}
 
-	void kppt_paramVector::updateEval() {
+	void kpp_paramVector::updateEval() {
 		//KPPのテーブル形式の違いに注意する
 		for (unsigned k = 0; k < SquareNum; k++) {
 			for (unsigned p1 = 0; p1 < fe_end; p1++) {
 				for (unsigned p2 = 0; p2 < p1; p2++) {
-					EvalElementTypeh val = KPP[kpptToLkpptnum(k, p1, p2, 0)];
-					kppt::KPP[k][p1][p2][0] += val; kppt::KPP[k][p2][p1][0] += val;
-					KPP[kpptToLkpptnum(k, p1, p2, 0)] -= val;
-					val = KPP[kpptToLkpptnum(k, p1, p2, 1)];
-					kppt::KPP[k][p1][p2][1] += val; kppt::KPP[k][p2][p1][1] += val;
-					KPP[kpptToLkpptnum(k, p1, p2, 1)] -= val;
+					const EvalElementType val = KPP[kppToLkppnum(k, p1, p2)];
+					kpp::KPP[k][p1][p2] += val; kpp::KPP[k][p2][p1] += val;
+					KPP[kppToLkppnum(k, p1, p2)] -= val;
 				}
 			}
 		}
 		for (unsigned sk = 0; sk < SquareNum; sk++) {
 			for (unsigned gk = 0; gk < SquareNum; gk++) {
 				for (unsigned p = 0; p < fe_end; p++) {
-					EvalElementTypeh val = KKP[kkptToLkkptnum(sk, gk, p, 0)];
-					kppt::KKP[sk][gk][p][0] += val;
-					KKP[kkptToLkkptnum(sk, gk, p, 0)] -= val;
-					val = KKP[kkptToLkkptnum(sk, gk, p, 1)];
-					kppt::KKP[sk][gk][p][1] += val;
-					KKP[kkptToLkkptnum(sk, gk, p, 1)] -= val;
+					const EvalElementType val = KKP[kkpToLkkpnum(sk, gk, p)];
+					kpp::KKP[sk][gk][p] += val;
+					KKP[kkpToLkkpnum(sk, gk, p)] -= val;
 				}
 			}
 		}
 		if (dynamicPieceScore) {
 			for (size_t i = 0; i < lpiecenum_plain; i++) {
 				const PieceScoreType val = PieceScoreArr[i];
-				kppt::PieceScoreArr[i] += val;
-				kppt::PieceScoreArr[i + 10] -= val;
+				kpp::PieceScoreArr[i] += val;
+				kpp::PieceScoreArr[i + 10] -= val;
 				PieceScoreArr[i] -= val;
 			}
 			//王の分を学習時に数えていないので、その分飛ばす
 			for (size_t i = lpiecenum_plain; i < lpiecenum; i++) {
 				const PieceScoreType val = PieceScoreArr[i];
-				kppt::PieceScoreArr[i + 1] += val;
-				kppt::PieceScoreArr[i + 11] -= val;
+				kpp::PieceScoreArr[i + 1] += val;
+				kpp::PieceScoreArr[i + 11] -= val;
 				PieceScoreArr[i] -= val;
 			}
 		}
 	}
 
-	kppt_paramVector& kppt_paramVector::operator+=(const kppt_paramVector& rhs) {
-		for (size_t i = 0; i < lkpptnum; i++) {
+	kpp_paramVector& kpp_paramVector::operator+=(const kpp_paramVector& rhs) {
+		for (size_t i = 0; i < lkppnum; i++) {
 			KPP[i] += rhs.KPP[i];
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			KKP[i] += rhs.KKP[i];
 		}
 		return *this;
 	}
-	kppt_paramVector& kppt_paramVector::operator+=(const fvpair& rhs) {
-		for (size_t i = 0; i < lkpptnum; i++) {
+	kpp_paramVector& kpp_paramVector::operator+=(const fvpair& rhs) {
+		for (size_t i = 0; i < lkppnum; i++) {
 			KPP[i] += rhs.f * rhs.v.KPP[i];
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			KKP[i] += rhs.f * rhs.v.KKP[i];
 		}
 		return *this;
 	}
-	kppt_paramVector& kppt_paramVector::operator*=(const double c) {
-		for (size_t i = 0; i < lkpptnum; i++) {
+	kpp_paramVector& kpp_paramVector::operator*=(const double c) {
+		for (size_t i = 0; i < lkppnum; i++) {
 			KPP[i] *= c;
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			KKP[i] *= c;
 		}
 		return *this;
 	}
 
-	void kppt_paramVector::save(const std::string& path) {
+	void kpp_paramVector::save(const std::string& path) {
 		std::ofstream fs(path,std::ios::binary);
 		if (!fs) {
 			std::cerr << "error:file canot generate" << std::endl;
@@ -312,7 +289,7 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::load(const std::string& path) {
+	void kpp_paramVector::load(const std::string& path) {
 		std::ifstream fs(path, std::ios::binary);
 		if (!fs) {
 			std::cerr << "error:file canot open" << std::endl;
@@ -338,17 +315,17 @@ namespace kppt {
 		}
 	}
 
-	void kppt_paramVector::print(const double displaymin,int isKPP)const {
+	void kpp_paramVector::print(const double displaymin,int isKPP)const {
 		using namespace std;
 		if (isKPP) {
 			cout << "show kpp" << endl;
-			for (int i = 0; i < kppt::SquareNum; i++) {
-				for (int j = 0; j < kppt::fe_end; j++) {
+			for (int i = 0; i < kpp::SquareNum; i++) {
+				for (int j = 0; j < kpp::fe_end; j++) {
 					for (int k = 0; k < j; k++) {
 						if (j == k)continue;
-						if (std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 0)]) > displaymin || std::abs(KPP[kppt::kpptToLkpptnum(i, j, k, 1)]) > displaymin) {
+						if (std::abs(KPP[kpp::kppToLkppnum(i, j, k)]) > displaymin) {
 							cout << "kpp " << i << " " << j << " " << k << ": ";
-							cout << KPP[kppt::kpptToLkpptnum(i, j, k, 0)] << " " << KPP[kppt::kpptToLkpptnum(i, j, k, 1)] << "\n";
+							cout << KPP[kpp::kppToLkppnum(i, j, k)] << "\n";
 						}
 					}
 				}
@@ -356,12 +333,12 @@ namespace kppt {
 		}
 		else {
 			cout << "show kkp" << endl;
-			for (int i = 0; i < kppt::SquareNum; i++) {
-				for (int j = 0; j < kppt::SquareNum; j++) {
-					for (int k = 0; k < kppt::fe_end; k++) {
-						if (std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 0)]) > displaymin || std::abs(KKP[kppt::kkptToLkkptnum(i, j, k, 1)]) > displaymin) {
+			for (int i = 0; i < kpp::SquareNum; i++) {
+				for (int j = 0; j < kpp::SquareNum; j++) {
+					for (int k = 0; k < kpp::fe_end; k++) {
+						if (std::abs(KKP[kpp::kkpToLkkpnum(i, j, k)]) > displaymin) {
 							cout << "kkp " << i << " " << j << " " << k << ": ";
-							cout << KKP[kppt::kkptToLkkptnum(i, j, k, 0)] << " " << KKP[kppt::kkptToLkkptnum(i, j, k, 1)] << "\n";
+							cout << KKP[kpp::kkpToLkkpnum(i, j, k)] << "\n";
 						}
 					}
 				}
@@ -376,11 +353,11 @@ namespace kppt {
 		}
 	}
 
-	bool kppt_paramVector::operator==(const kppt_paramVector& rhs)const {
-		for (size_t i = 0; i < lkpptnum; i++) {
+	bool kpp_paramVector::operator==(const kpp_paramVector& rhs)const {
+		for (size_t i = 0; i < lkppnum; i++) {
 			if (KPP[i] != rhs.KPP[i]) return false;
 		}
-		for (size_t i = 0; i < lkkptnum; i++) {
+		for (size_t i = 0; i < lkkpnum; i++) {
 			if (KKP[i] != rhs.KKP[i]) return false;
 		}
 		if (dynamicPieceScore && (PieceScoreArr != rhs.PieceScoreArr)) { 
@@ -389,7 +366,7 @@ namespace kppt {
 		return true;
 	}
 
-	void Adam::updateEval(kppt_paramVector& dw) {
+	void Adam::updateEval(kpp_paramVector& dw) {
 		t++;
 		const auto b1t = std::pow(b1, t);
 		const auto b2t = std::pow(b2, t);
@@ -397,27 +374,18 @@ namespace kppt {
 			for (unsigned p1 = 0; p1 < fe_end; p1++) {
 				for (unsigned p2 = 0; p2 < p1; p2++) {
 					{
-						const auto idx = kpptToLkpptnum(k, p1, p2, 0);
+						const auto idx = kppToLkppnum(k, p1, p2);
 						const auto val = dw.KPP[idx];
 						mt.KPP[idx] = mt.KPP[idx] * b1 + (1 - b1) * val;
 						vt.KPP[idx] = vt.KPP[idx] * b2 + (1 - b2) * val * val;
 						const double dwt = -alpha * (mt.KPP[idx] / (1 - b1t)) / (std::sqrt(vt.KPP[idx] / (1 - b2t)) + epsilon);
-						kppt::KPP[k][p1][p2][0] += dwt; kppt::KPP[k][p2][p1][0] += dwt;
+						kpp::KPP[k][p1][p2] += dwt; kpp::KPP[k][p2][p1] += dwt;
 						/*if (std::abs(dwt) > 0) {
 							std::cout << "t:"<< t << " val:" << val;
 							std::cout << " mt,vt:" << mt.KPP[idx] << "," << vt.KPP[idx];
 							std::cout << " dwt:" << dwt;
 							std::cout << "\n";
 						}*/
-						dw.KPP[idx] = 0;
-					}
-					{
-						const auto idx = kpptToLkpptnum(k, p1, p2, 1);
-						const double val = dw.KPP[idx];
-						mt.KPP[idx] = mt.KPP[idx] * b1 + (1 - b1) * val;
-						vt.KPP[idx] = vt.KPP[idx] * b2 + (1 - b2) * val * val;
-						const double dwt = -alpha * (mt.KPP[idx] / (1 - b1t)) / (std::sqrt(vt.KPP[idx] / (1 - b2t)) + epsilon);
-						kppt::KPP[k][p1][p2][1] += dwt; kppt::KPP[k][p2][p1][1] += dwt;
 						dw.KPP[idx] = 0;
 					}
 				}
@@ -427,27 +395,18 @@ namespace kppt {
 			for (unsigned gk = 0; gk < SquareNum; gk++) {
 				for (unsigned p = 0; p < fe_end; p++) {
 					{
-						const auto idx = kkptToLkkptnum(sk, gk, p, 0);
+						const auto idx = kkpToLkkpnum(sk, gk, p);
 						const auto val = dw.KKP[idx];
 						mt.KKP[idx] = mt.KKP[idx] * b1 + (1 - b1) * val;
 						vt.KKP[idx] = vt.KKP[idx] * b2 + (1 - b2) * val * val;
 						const double dwt = -alpha * (mt.KKP[idx] / (1 - b1t)) / (std::sqrt(vt.KKP[idx] / (1 - b2t)) + epsilon);
-						kppt::KKP[sk][gk][p][0] += dwt;
+						kpp::KKP[sk][gk][p] += dwt;
 						/*if (std::abs(dwt) > 0) {
 							std::cout << "t:" << t << " val:" << val;
 							std::cout << " mt,vt:" << mt.KKP[idx] << "," << vt.KKP[idx];
 							std::cout << " dwt:" << std::fixed << std::setprecision(6) << dwt;
 							std::cout << "\n";
 						}*/
-						dw.KKP[idx] = 0;
-					}
-					{
-						const auto idx = kkptToLkkptnum(sk, gk, p, 1);
-						const auto val = dw.KKP[idx];
-						mt.KKP[idx] = mt.KKP[idx] * b1 + (1 - b1) * val;
-						vt.KKP[idx] = vt.KKP[idx] * b2 + (1 - b2) * val * val;
-						const double dwt = -alpha * (mt.KKP[idx] / (1 - b1t)) / (std::sqrt(vt.KKP[idx] / (1 - b2t)) + epsilon);
-						kppt::KKP[sk][gk][p][1] += dwt;
 						dw.KKP[idx] = 0;
 					}
 				}
@@ -459,7 +418,7 @@ namespace kppt {
 				mt.PieceScoreArr[i] = mt.PieceScoreArr[i] * b1 + (1 - b1) * val;
 				vt.PieceScoreArr[i] = vt.PieceScoreArr[i] * b2 + (1 - b2) * val * val;
 				const double dwt = -alpha * (mt.PieceScoreArr[i] / (1 - b1t)) / (std::sqrt(vt.PieceScoreArr[i] / (1 - b2t)) + epsilon);
-				kppt::PieceScoreArr[i] += dwt;
+				kpp::PieceScoreArr[i] += dwt;
 				dw.PieceScoreArr[i] = 0;
 			}
 		}

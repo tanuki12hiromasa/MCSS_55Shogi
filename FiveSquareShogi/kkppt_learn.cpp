@@ -64,7 +64,7 @@ namespace kkppt {
 		const unsigned invgkpos = inverse(gkpos);
 		const unsigned invskpos = inverse(skpos);
 		const float bammenscalar = (player.kyokumen.teban()) ? scalar : -scalar;
-		const float tebanscalar = scalar;
+		const float tebanscalar = scalar / 8.0;
 		for (unsigned i = 0; i < EvalList::EvalListSize; i++) {
 			const int k0 = player.feature.idlist.list0[i];
 			for (unsigned j = 0; j < i; j++) {

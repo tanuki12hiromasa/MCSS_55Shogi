@@ -2,6 +2,8 @@
 #include "agent.h"
 #include "kppt_learn.h"
 #include "kkppt_learn.h"
+#include "kpp_kkpt_learn.h"
+#include "kpp_learn.h"
 
 #ifdef USE_KPPT
 using LearnVec = kppt::kppt_paramVector;
@@ -10,6 +12,16 @@ using LearnOpt = kppt::Adam;
 
 #ifdef USE_KKPPT
 using LearnVec = kkppt::kkppt_paramVector;
+#endif
+
+#ifdef USE_KPP_KKPT
+using LearnVec = kpp_kkpt::kpp_kkpt_paramVector;
+using LearnOpt = kpp_kkpt::Adam;
+#endif
+
+#ifdef USE_KPP
+using LearnVec = kpp::kpp_paramVector;
+using LearnOpt = kpp::Adam;
 #endif
 
 enum class GameResult {
@@ -34,6 +46,7 @@ public:
 	static LearnVec getSamplingGradV(const SearchNode* root, const SearchPlayer& player,unsigned samplingnum);
 	static LearnVec getSamplingGradQ(const SearchNode* root, const SearchPlayer& player, unsigned samplingnum);
 	static double EvalToProb(const double eval);
+	static double EvalToSignProb(const double eval);
 	static double BackProb(const SearchNode& parent, const SearchNode& child, const double T);
 	static double ResultToProb(GameResult result, bool teban);
 	static double ResultToReward(GameResult result, bool teban, double r_win, double r_draw, double r_lose);

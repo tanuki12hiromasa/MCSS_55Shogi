@@ -1,0 +1,92 @@
+﻿#pragma once
+#include "kpp_param.h"
+
+#ifdef _LEARN
+#ifndef _LEARN_COMMANDER
+#define _EVAL_FLOAT
+#endif
+#endif
+
+namespace kpp {
+#ifndef _EVAL_FLOAT
+	using PieceScoreType = int;
+	using EvalElementType = std::int16_t;
+#else
+	using PieceScoreType = float;
+	using EvalElementTypeh = float;
+	using EvalElementType = std::array<float, 2>;
+#endif
+	using KPPEvalElementType0 = EvalElementType[fe_end];
+	using KPPEvalElementType1 = KPPEvalElementType0[fe_end];
+	using KPPEvalElementType2 = KPPEvalElementType1[SquareNum];
+	using KKPEvalElementType0 = EvalElementType[fe_end];
+	using KKPEvalElementType1 = KKPEvalElementType0[SquareNum];
+	using KKPEvalElementType2 = KKPEvalElementType1[SquareNum];
+
+	extern std::array<PieceScoreType, static_cast<size_t>(koma::Koma::KomaNum)> PieceScoreArr;
+	extern KPPEvalElementType1* KPP;
+	extern KKPEvalElementType1* KKP;
+	extern bool dynamicPieceScore;
+	extern bool allocated;
+	inline int PieceScore(koma::Koma k) { return PieceScoreArr[static_cast<size_t>(k)]; }
+	inline int PieceScore(koma::Mochigoma m) { return PieceScoreArr[static_cast<size_t>(m)]; }
+	inline int PieceScore(koma::Mochigoma m, bool teban) { return teban ? PieceScoreArr[static_cast<size_t>(m)] : -PieceScoreArr[static_cast<size_t>(m)]; }
+
+	struct EvalList {
+		static constexpr int EvalListSize = 10;
+		std::array<EvalIndex, EvalListSize> list0;
+		std::array<EvalIndex, EvalListSize> list1;
+		int material = 0;
+
+		EvalList() :list0{ {f_hand_pawn} }, list1{ {f_hand_pawn} } {} //search_treeはコンストラクトを持たないのでデフォルトコンストラクタが要る
+		EvalList(const Kyokumen& k) { set(k); }
+		void set(const Kyokumen&);
+	};
+
+	struct EvalSum {
+		EvalSum() :p{ {0,0,0} } {}
+		std::array<int32_t, 3> p;
+		std::int32_t sum(bool teban) const {
+			std::int32_t BanScore = p[0] - p[1] + p[2];
+			return teban ? BanScore : -BanScore;
+		}
+		EvalSum& operator+=(const EvalSum& rhs) {
+			p[0] += rhs.p[0];
+			p[1] += rhs.p[1];
+			p[2] += rhs.p[2];
+			return *this;
+		}
+		EvalSum& operator-=(const EvalSum& rhs) {
+			p[0] -= rhs.p[0];
+			p[1] -= rhs.p[1];
+			p[2] -= rhs.p[2];
+			return *this;
+		}
+		EvalSum operator+(const EvalSum& rhs) { return EvalSum(*this) += rhs; }
+		EvalSum operator-(const EvalSum& rhs) { return EvalSum(*this) -= rhs; }
+	};
+
+	class kpp_feat {
+	public:
+		static void init(const std::string& folderpath);
+		static void save(const std::string& folderpath);
+		static EvalSum EvalFull(const Kyokumen&, const EvalList&);
+
+	public:
+		kpp_feat() {}
+		kpp_feat(const Kyokumen& k) :idlist(k) { sum = EvalFull(k, idlist); }
+		EvalList idlist;
+		EvalSum sum;
+		void set(const Kyokumen& kyokumen);
+		void proceed(const Kyokumen& before, const Move& move);
+		void recede(const Kyokumen& before, const koma::Koma moved, const koma::Koma captured, const Move move, const EvalSum& cache);
+		EvalSum getCache() { return sum; }
+		bool operator==(const kpp_feat& rhs)const;
+		bool operator!=(const kpp_feat& rhs)const {
+			return !operator==(rhs);
+		}
+		std::string toString()const;
+
+		friend class kpp_learn;
+	};
+}
